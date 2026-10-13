@@ -1,0 +1,212 @@
+import { query } from '../config/db.js';
+
+let porteurMigrationPromise;
+let partenairesMigrationPromise;
+let erpTrackingMigrationPromise;
+
+/**
+ * Migration légère et idempotente pour les environnements serverless où le
+ * script de migration n'est pas nécessairement exécuté avant le déploiement.
+ */
+export function ensurePorteurColumn() {
+  if (!porteurMigrationPromise) {
+    porteurMigrationPromise = query(`
+      ALTER TABLE dossiers
+      ADD COLUMN IF NOT EXISTS porteur VARCHAR(255) DEFAULT '';
+
+      UPDATE dossiers
+      SET porteur = BTRIM(SUBSTRING(nom_tire FROM POSITION(':' IN nom_tire) + 1))
+      WHERE relation = 'CDC'
+        AND COALESCE(porteur, '') = ''
+        AND POSITION(':' IN nom_tire) > 0;
+    `).catch((error) => {
+      // Autoriser une nouvelle tentative lors de la prochaine requête.
+      porteurMigrationPromise = undefined;
+      throw error;
+    });
+  }
+
+  return porteurMigrationPromise;
+}
+
+export function ensurePartenairesTable() {
+  if (!partenairesMigrationPromise) {
+    partenairesMigrationPromise = query(`
+      CREATE TABLE IF NOT EXISTS partenaires_reference (
+        id SERIAL PRIMARY KEY,
+        nom VARCHAR(255) NOT NULL UNIQUE,
+        actif BOOLEAN NOT NULL DEFAULT true,
+        date_creation TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+
+      ALTER TABLE partenaires_reference
+      ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'manual';
+
+      CREATE TABLE IF NOT EXISTS application_migrations (
+        migration_key VARCHAR(255) PRIMARY KEY,
+        applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM application_migrations
+          WHERE migration_key = '009_partners_from_erp'
+        ) THEN
+          UPDATE partenaires_reference SET source = 'legacy';
+          INSERT INTO application_migrations (migration_key) VALUES ('009_partners_from_erp');
+        END IF;
+      END $$;
+
+      INSERT INTO partenaires_reference (nom)
+      SELECT DISTINCT CASE
+        WHEN relation = 'CDC' AND POSITION(':' IN nom_tire) > 0
+          THEN BTRIM(SPLIT_PART(nom_tire, ':', 1))
+        ELSE BTRIM(nom_tire)
+      END
+      FROM dossiers
+      WHERE nom_tire IS NOT NULL AND BTRIM(nom_tire) <> ''
+      ON CONFLICT (nom) DO NOTHING;
+    `).catch((error) => {
+      partenairesMigrationPromise = undefined;
+      throw error;
+    });
+  }
+  return partenairesMigrationPromise;
+}
+
+export function ensureErpTrackingTables() {
+  if (!erpTrackingMigrationPromise) {
+    erpTrackingMigrationPromise = query(`
+      CREATE TABLE IF NOT EXISTS erp_impayes_snapshot (
+        erp_voucher_id INTEGER PRIMARY KEY,
+        date_saisie DATE,
+        date_facture DATE,
+        date_echeance DATE,
+        montant NUMERIC(15, 2) NOT NULL DEFAULT 0,
+        type_valeur VARCHAR(10) NOT NULL,
+        numero_valeur VARCHAR(255) NOT NULL,
+        nom_tire VARCHAR(255) NOT NULL,
+        porteur VARCHAR(255) NOT NULL DEFAULT '',
+        relation VARCHAR(10) NOT NULL DEFAULT 'CD',
+        banque VARCHAR(255) NOT NULL DEFAULT 'Non renseignee',
+        erp_partner_id INTEGER,
+        erp_commercial_nom VARCHAR(255),
+        actif BOOLEAN NOT NULL DEFAULT true,
+        synced_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_erp_snapshot_actif ON erp_impayes_snapshot(actif);
+      CREATE INDEX IF NOT EXISTS idx_erp_snapshot_client ON erp_impayes_snapshot(nom_tire);
+      CREATE INDEX IF NOT EXISTS idx_erp_snapshot_date ON erp_impayes_snapshot(date_saisie);
+
+      CREATE TABLE IF NOT EXISTS erp_sync_runs (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        completed_at TIMESTAMP WITH TIME ZONE,
+        status VARCHAR(30) NOT NULL DEFAULT 'running',
+        received_count INTEGER NOT NULL DEFAULT 0,
+        details JSONB NOT NULL DEFAULT '{}'
+      );
+
+      CREATE TABLE IF NOT EXISTS application_migrations (
+        migration_key VARCHAR(255) PRIMARY KEY,
+        applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM application_migrations
+          WHERE migration_key = '006_remove_legacy_test_dossiers'
+        ) THEN
+          DELETE FROM dossiers;
+          INSERT INTO application_migrations (migration_key)
+          VALUES ('006_remove_legacy_test_dossiers');
+        END IF;
+      END $$;
+
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM application_migrations
+          WHERE migration_key = '007_users_email_gadimat_com'
+        ) THEN
+          UPDATE users
+          SET email = REGEXP_REPLACE(email, '@gadimat\\.ma$', '@gadimat.com', 'i'),
+              date_modification = NOW()
+          WHERE email ~* '@gadimat\\.ma$';
+          INSERT INTO application_migrations (migration_key)
+          VALUES ('007_users_email_gadimat_com');
+        END IF;
+      END $$;
+
+      CREATE TABLE IF NOT EXISTS erp_dossier_suivi (
+        erp_voucher_id INTEGER PRIMARY KEY,
+        statut VARCHAR(255) NOT NULL DEFAULT 'Attente retour du client',
+        observations TEXT NOT NULL DEFAULT '',
+        commercial_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        date_derniere_action TIMESTAMP WITH TIME ZONE,
+        date_creation TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        date_derniere_modification TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS erp_actions (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        erp_voucher_id INTEGER NOT NULL,
+        auteur_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        contenu TEXT NOT NULL,
+        type_action VARCHAR(100) DEFAULT 'relance',
+        date_action TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        date_creation TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+      ALTER TABLE erp_actions ADD COLUMN IF NOT EXISTS date_rappel DATE;
+      ALTER TABLE erp_actions ADD COLUMN IF NOT EXISTS date_rappel_email_envoye TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE erp_actions ADD COLUMN IF NOT EXISTS date_rappel_email_en_cours TIMESTAMP WITH TIME ZONE;
+      CREATE INDEX IF NOT EXISTS idx_erp_actions_voucher ON erp_actions(erp_voucher_id);
+      CREATE INDEX IF NOT EXISTS idx_erp_actions_date_rappel ON erp_actions(date_rappel) WHERE date_rappel IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_erp_actions_rappel_email
+        ON erp_actions(date_rappel, date_rappel_email_envoye)
+        WHERE date_rappel IS NOT NULL AND date_rappel_email_envoye IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_erp_suivi_commercial ON erp_dossier_suivi(commercial_id);
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        erp_voucher_id INTEGER,
+        action_id UUID,
+        titre VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        lu BOOLEAN NOT NULL DEFAULT false,
+        date_creation TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        date_lecture TIMESTAMP WITH TIME ZONE
+      );
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_date
+        ON notifications(user_id, date_creation DESC);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+        ON notifications(user_id, lu) WHERE lu = false;
+
+      INSERT INTO statuts_reference (libelle, ordre, couleur) VALUES
+        ('Contentieux', 0, '#dc2626'),
+        ('Pré-contentieux', 1, '#ea580c'),
+        ('A rendre au client', 2, '#d97706'),
+        ('A voir avec le commercial', 3, '#ca8a04'),
+        ('Attente retour du client', 4, '#65a30d'),
+        ('Valeur à représenter', 5, '#16a34a'),
+        ('Règlement à recevoir', 6, '#059669'),
+        ('Règlement à récupérer', 7, '#0d9488'),
+        ('Règlement partiel', 8, '#0891b2'),
+        ('Régularisé - OK', 9, '#0284c7'),
+        ('Représenté', 10, '#2563eb'),
+        ('Sans suite', 11, '#7c3aed'),
+        ('Valeur à remplacer', 12, '#9333ea'),
+        ('Valeur envoyée à l''encaissement', 13, '#c026d3')
+      ON CONFLICT (libelle) DO UPDATE SET
+        ordre = EXCLUDED.ordre,
+        couleur = EXCLUDED.couleur,
+        actif = true;
+    `).catch((error) => {
+      erpTrackingMigrationPromise = undefined;
+      throw error;
+    });
+  }
+  return erpTrackingMigrationPromise;
+}

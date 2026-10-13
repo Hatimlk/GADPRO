@@ -1,0 +1,728 @@
+﻿import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
+import { formatMontant, formatDate, cn } from '../utils';
+import { CATEGORICAL, SEQUENTIAL_BLUE, CHART_INK } from '../utils/chartColors';
+import type { DashboardStats } from '../types';
+import {
+  BarChart, Bar, AreaChart, Area, LineChart, Line, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
+import {
+  FolderOpen, TrendingUp, AlertTriangle, Clock, Download, Plus,
+  FileText, CheckCircle2, Copy, Check, ArrowRight,
+  CreditCard, Calendar as CalendarIcon, ShieldCheck, ChevronRight, User,
+  ChevronLeft, X, BellRing, Info, Filter, Layers
+} from 'lucide-react';
+import {
+  Card, Button, PageSpinner, EmptyState, ChartTooltip
+} from '../components/ui';
+
+function formatKAxis(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
+  return String(value);
+}
+
+const axisTick = { fontSize: 11, fill: CHART_INK.secondary };
+const valueAxisTick = { fontSize: 12, fill: CHART_INK.muted };
+
+const MONTH_NAMES = [
+  'Janvier', 'Fأ©vrier', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Aoأ»t', 'Septembre', 'Octobre', 'Novembre', 'Dأ©cembre'
+];
+
+// Interactive Calendar Widget
+function RelanceCalendar() {
+  const navigate = useNavigate();
+  const daysOfWeek = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const now = new Date();
+  const [events, setEvents] = useState<Record<string, any[]>>({});
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(now.getMonth());
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.getCalendrier().then((dossiers) => {
+      const grouped: Record<string, any[]> = {};
+      dossiers.forEach((dossier) => {
+        const date = String(dossier.date_echeance).slice(0, 10);
+        (grouped[date] ||= []).push(dossier);
+      });
+      setEvents(grouped);
+      const dates = Object.keys(grouped).sort();
+      const today = new Date().toISOString().slice(0, 10);
+      const nearest = dates.find((date) => date >= today) || dates[dates.length - 1];
+      if (nearest) {
+        const [year, month] = nearest.split('-').map(Number);
+        setCurrentYear(year);
+        setCurrentMonthIndex(month - 1);
+      }
+    }).catch(console.error);
+  }, []);
+
+  const prevMonth = () => {
+    if (currentMonthIndex === 0) {
+      setCurrentMonthIndex(11);
+      setCurrentYear((y) => y - 1);
+    } else {
+      setCurrentMonthIndex((m) => m - 1);
+    }
+    setSelectedDay(null);
+  };
+
+  const nextMonth = () => {
+    if (currentMonthIndex === 11) {
+      setCurrentMonthIndex(0);
+      setCurrentYear((y) => y + 1);
+    } else {
+      setCurrentMonthIndex((m) => m + 1);
+    }
+    setSelectedDay(null);
+  };
+
+  // Get total days in month & starting day offset
+  const firstDayOfMonth = new Date(currentYear, currentMonthIndex, 1).getDay();
+  const totalDaysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+
+  const monthStr = String(currentMonthIndex + 1).padStart(2, '0');
+
+  // Format selected date string YYYY-MM-DD
+  const selectedDateStr = selectedDay
+    ? `${currentYear}-${monthStr}-${String(selectedDay).padStart(2, '0')}`
+    : null;
+
+  const selectedEvents = selectedDateStr ? events[selectedDateStr] || [] : [];
+
+  return (
+    <div className="p-1 space-y-3">
+      {/* Month Header Navigation */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+          <CalendarIcon className="w-3.5 h-3.5 text-brand-600" />
+          أ‰chأ©ances & Relances
+        </span>
+        <div className="flex items-center gap-1 bg-brand-50/80 px-2 py-1 rounded-xl border border-brand-100">
+          <button
+            onClick={prevMonth}
+            className="p-0.5 hover:bg-brand-200/50 rounded-md transition text-brand-700 cursor-pointer"
+            title="Mois prأ©cأ©dent"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-xs font-bold text-brand-700 min-w-[85px] text-center select-none">
+            {MONTH_NAMES[currentMonthIndex]} {currentYear}
+          </span>
+          <button
+            onClick={nextMonth}
+            className="p-0.5 hover:bg-brand-200/50 rounded-md transition text-brand-700 cursor-pointer"
+            title="Mois suivant"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {daysOfWeek.map((d) => (
+          <span key={d} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+            {d}
+          </span>
+        ))}
+      </div>
+
+      {/* Days grid */}
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {/* Empty cells for starting day offset */}
+        {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+          <div key={`empty-${i}`} className="h-7 w-7" />
+        ))}
+
+        {/* Days of the month */}
+        {Array.from({ length: totalDaysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const dateKey = `${currentYear}-${monthStr}-${String(day).padStart(2, '0')}`;
+          const dayEvents = events[dateKey];
+          const hasEvents = !!dayEvents && dayEvents.length > 0;
+          const isSelected = selectedDay === day;
+
+          return (
+            <button
+              key={day}
+              onClick={() => setSelectedDay(day)}
+              className={cn(
+                'h-7 w-7 mx-auto flex items-center justify-center text-xs rounded-full transition-all duration-150 relative cursor-pointer font-medium select-none focus:outline-none',
+                isSelected
+                  ? 'bg-brand-600 text-white font-bold shadow-md ring-2 ring-brand-300 scale-110'
+                  : hasEvents
+                  ? 'bg-brand-100 text-brand-800 font-bold ring-2 ring-brand-400/50 hover:bg-brand-200 hover:scale-105'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              )}
+            >
+              {day}
+              {hasEvents && !isSelected && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-600 rounded-full animate-pulse ring-1 ring-white" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected Day Details Popover Card */}
+      {selectedDay && (
+        <div className="mt-3 p-3 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <BellRing className="w-3.5 h-3.5 text-brand-400" />
+              <span className="text-xs font-bold text-slate-100">
+                {selectedDay} {MONTH_NAMES[currentMonthIndex]} {currentYear}
+              </span>
+            </div>
+            <button
+              onClick={() => setSelectedDay(null)}
+              className="text-slate-400 hover:text-white p-0.5 rounded transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="py-2 space-y-2">
+            {selectedEvents.length === 0 ? (
+              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 py-1">
+                <Info className="w-3.5 h-3.5 text-slate-500" />
+                <span>Aucune relance programmأ©e pour ce jour.</span>
+              </div>
+            ) : (
+              selectedEvents.map((evt) => (
+                <button key={evt.id} onClick={() => navigate(`/impayes/dossiers/${evt.id}`)} className="w-full text-left bg-slate-800/80 p-2 rounded-lg border border-slate-700/50 space-y-1 hover:border-brand-400 transition">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-brand-300">{evt.nom_tire}</span>
+                    <span className="text-[11px] font-mono font-bold text-emerald-400">{formatMontant(Number(evt.montant))}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-tight">{evt.type_valeur} آ· {evt.commercial_nom || 'Non assignأ©'} آ· {evt.statut}</p>
+                  {evt.observations && <p className="text-[10px] text-slate-400 truncate">{evt.observations.split(' | Date facture :')[0]}</p>}
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="pt-1">
+            <button
+              onClick={() => navigate(`/dossiers`)}
+              className="w-full py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1"
+            >
+              <span>Voir les dossiers</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const COMMERCIAL_COLORS = [
+  '#2563eb', // Blue
+  '#7c3aed', // Violet
+  '#059669', // Emerald
+  '#d97706', // Amber
+  '#dc2626', // Red
+  '#0891b2', // Cyan
+  '#e11d48', // Rose
+  '#4f46e5', // Indigo
+];
+
+function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
+  const [periodMode, setPeriodMode] = useState<'hebdo' | 'mensuel' | 'annuel'>('mensuel');
+  const [selectedCommercial, setSelectedCommercial] = useState<string>('all');
+
+  const commercials = (stats.parCommercial || [])
+    .map((c) => c.commercial_nom)
+    .filter((nom): nom is string => Boolean(nom) && nom !== 'Non assignأ©');
+
+  let activeData: any[] = [];
+  if (periodMode === 'hebdo') {
+    activeData = stats.evolutionHebdo && stats.evolutionHebdo.length > 0
+      ? stats.evolutionHebdo
+      : [];
+  } else if (periodMode === 'mensuel') {
+    activeData = stats.evolutionMensuelleDetail && stats.evolutionMensuelleDetail.length > 0
+      ? stats.evolutionMensuelleDetail
+      : (stats.evolutionMensuelle || []).map((m) => ({ ...m, label: m.mois, periode: m.mois }));
+  } else {
+    activeData = stats.evolutionAnnuelle && stats.evolutionAnnuelle.length > 0
+      ? stats.evolutionAnnuelle.filter((point) => {
+          const year = Number(String(point.periode || point.label || '').slice(0, 4));
+          return Number.isFinite(year) && year >= 2019;
+        })
+      : [];
+  }
+
+  // Calcul du montant total filtrأ© pour le rأ©sumأ©
+  const totalFilteredPeriod = activeData.reduce((acc, pt) => {
+    if (selectedCommercial === 'all') {
+      return acc + (pt.total_montant || 0);
+    }
+    return acc + (pt[selectedCommercial] || 0);
+  }, 0);
+
+  return (
+    <Card className="lg:col-span-12 p-5 sm:p-6 space-y-4 shadow-xs border-gray-200">
+      {/* Header controls: Title + Period Pills + Commercial Select */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-gray-100">
+        <div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-brand-600" />
+            <h2 className="text-base font-bold text-gray-900">أ‰volution des Impayأ©s</h2>
+          </div>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Courbes des montants par pأ©riodicitأ© (Hebdo, Mois, Annuel) et commercial
+          </p>
+        </div>
+
+        {/* Filters Controls Group */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Period Selector Tabs */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200/80">
+            <button
+              onClick={() => setPeriodMode('hebdo')}
+              className={cn(
+                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+                periodMode === 'hebdo'
+                  ? 'bg-white text-brand-700 shadow-xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              Hebdo
+            </button>
+            <button
+              onClick={() => setPeriodMode('mensuel')}
+              className={cn(
+                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+                periodMode === 'mensuel'
+                  ? 'bg-white text-brand-700 shadow-xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              Mois
+            </button>
+            <button
+              onClick={() => setPeriodMode('annuel')}
+              className={cn(
+                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+                periodMode === 'annuel'
+                  ? 'bg-white text-brand-700 shadow-xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              Annuel
+            </button>
+          </div>
+
+          {/* Commercial Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedCommercial}
+              onChange={(e) => setSelectedCommercial(e.target.value)}
+              className="pl-7 pr-8 py-1.5 bg-brand-50/80 border border-brand-200 text-brand-800 text-xs font-bold rounded-xl appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400"
+            >
+              <option value="all">Tous les commerciaux (Comparatif)</option>
+              {commercials.map((c) => (
+                <option key={c} value={c}>
+                  Commercial : {c}
+                </option>
+              ))}
+            </select>
+            <User className="w-3.5 h-3.5 text-brand-600 absolute left-2 top-2.5 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* Metric summary bar */}
+      <div className="flex items-center justify-between bg-gray-50/80 px-3.5 py-2 rounded-xl border border-gray-100 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-500">Pأ©riode :</span>
+          <span className="font-bold text-gray-800 uppercase tracking-wider">
+            {periodMode === 'hebdo' ? 'Hebdomadaire' : periodMode === 'mensuel' ? 'Mensuelle' : 'Annuelle'}
+          </span>
+          <span className="text-gray-300">â€¢</span>
+          <span className="font-semibold text-brand-700">
+            {selectedCommercial === 'all' ? 'Vue comparative' : `Commercial: ${selectedCommercial}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 font-mono font-extrabold text-brand-700">
+          <span className="text-gray-500 font-normal">Total :</span>
+          <span className="text-xs sm:text-sm text-emerald-700">{formatMontant(totalFilteredPeriod)}</span>
+        </div>
+      </div>
+
+      {/* Chart Canvas */}
+      <div className="h-[360px] sm:h-[430px] xl:h-[500px]">
+        <ResponsiveContainer width="100%" height="100%">
+          {selectedCommercial === 'all' ? (
+          <LineChart data={activeData} margin={{ left: -10, right: 15, top: 10, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke={CHART_INK.gridline} strokeDasharray="3 3" />
+            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
+            <Tooltip content={(p: any) => <ChartTooltip {...p} formatter={formatMontant} />} />
+            <Legend
+              wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+              iconType="circle"
+            />
+            {/* Total General Line */}
+            <Line
+              type="monotone"
+              dataKey="total_montant"
+              name="Total Gأ©nأ©ral"
+              stroke="#0f172a"
+              strokeWidth={3}
+              strokeDasharray="4 4"
+              dot={{ r: 4, fill: '#0f172a' }}
+            />
+            {/* Per Commercial Lines */}
+            {commercials.map((commName, idx) => (
+              <Line
+                key={commName}
+                type="monotone"
+                dataKey={commName}
+                name={commName}
+                stroke={COMMERCIAL_COLORS[idx % COMMERCIAL_COLORS.length]}
+                strokeWidth={2.5}
+                dot={{ r: 3.5, strokeWidth: 1.5, stroke: '#fff' }}
+                activeDot={{ r: 5.5 }}
+              />
+            ))}
+          </LineChart>
+          ) : (
+          <AreaChart data={activeData} margin={{ left: -10, right: 15, top: 10, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorSingleComm" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={COMMERCIAL_COLORS[0]} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={COMMERCIAL_COLORS[0]} stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke={CHART_INK.gridline} strokeDasharray="3 3" />
+            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
+            <Tooltip content={(p: any) => <ChartTooltip {...p} formatter={formatMontant} />} />
+            <Area
+              type="monotone"
+              dataKey={selectedCommercial}
+              name={`Commercial: ${selectedCommercial}`}
+              stroke={COMMERCIAL_COLORS[0]}
+              strokeWidth={3}
+              fill="url(#colorSingleComm)"
+              dot={{ r: 4, fill: COMMERCIAL_COLORS[0], strokeWidth: 2, stroke: '#fff' }}
+              activeDot={{ r: 6.5 }}
+            />
+          </AreaChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </Card>
+  );
+}
+
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copiedId, setCopiedId] = useState(false);
+
+  useEffect(() => {
+    api.getStats()
+      .then(setStats)
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  const handleExport = async () => {
+    try {
+      const blob = await api.exportExcel({});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'impayes_export.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || 'Erreur export');
+    }
+  };
+
+  if (loading) {
+    return <PageSpinner label="Chargement du tableau de bord..." />;
+  }
+
+  if (!stats) {
+    return (
+      <Card>
+        <EmptyState icon={<AlertTriangle className="w-6 h-6" />} title="Erreur de chargement des statistiques" />
+      </Card>
+    );
+  }
+
+  const topBanques = [...stats.parBanque].sort((a, b) => b.total_montant - a.total_montant).slice(0, 6);
+  const chqData = stats.parType.find((t) => t.type_valeur === 'CHQ') || { count: 0, total_montant: 0 };
+  const lcnData = stats.parType.find((t) => t.type_valeur === 'LCN') || { count: 0, total_montant: 0 };
+  const regularises = stats.parStatut.filter((s) => s.statut.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes('regularise'));
+  const regulariseCount = regularises.reduce((sum, item) => sum + Number(item.count), 0);
+  const regulariseRate = stats.total.count ? Math.round((regulariseCount / stats.total.count) * 100) : 0;
+  const contentieuxCount = stats.parStatut
+    .filter((s) => s.statut.toLowerCase().includes('contentieux'))
+    .reduce((sum, item) => sum + Number(item.count), 0);
+  const portfolioYear = stats.total.date_reference ? new Date(stats.total.date_reference).getFullYear() : new Date().getFullYear();
+
+  return (
+    <div className="space-y-6 pb-8">
+      {/* Top Banner Title */}
+      <div className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl border border-brand-100 bg-gradient-to-r from-white via-white to-brand-50/70 p-5 shadow-sm md:flex-row md:items-center sm:p-6">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-brand-200/30 blur-3xl" />
+        <div>
+          <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Pilotage du portefeuille</p>
+          <h1 className="text-2xl font-extrabold text-gray-950 tracking-tight sm:text-3xl">Dashboard Recouvrement</h1>
+          <p className="text-xs text-gray-500 mt-1 font-medium">
+            Vue synthأ©tique du portefeuille et suivi analytique dans PROGAD
+          </p>
+        </div>
+        <div className="relative flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handleExport} className="rounded-xl">
+            <Download className="w-4 h-4" />
+            <span>Exporter Rapport</span>
+          </Button>
+          <Button onClick={() => navigate('/impayes/dossiers')} className="rounded-xl shadow-md shadow-brand-600/20">
+            <Plus className="w-4 h-4" />
+            <span>Nouveau Dossier</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Grid: Left Profile Card + Right Content */}
+      <div className="block">
+
+        {/* LEFT SUMMARY PROFILE PANEL */}
+        <div className="hidden">
+          <Card className="relative space-y-4 overflow-hidden border-gray-200/90 p-5 text-center shadow-sm">
+            {/* Ambient Background Blur */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Profile Avatar / Initials Circle */}
+            <div className="relative inline-block">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-600 text-2xl font-extrabold text-white shadow-lg shadow-brand-500/30 ring-4 ring-white">
+                GD
+              </div>
+              <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-[9px] text-white font-bold">
+                âœ“
+              </span>
+            </div>
+
+            {/* Entity Title */}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">GADIMAT S.A.</h2>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">Portefeuille des impayأ©s</p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={handleExport}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold rounded-xl transition cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Rapport</span>
+              </button>
+              <button
+                onClick={() => navigate('/impayes/dossiers')}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold rounded-xl transition cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Dossiers</span>
+              </button>
+            </div>
+
+            {/* General Info Metadata Block */}
+            <div className="border-t border-gray-100 pt-4 text-left space-y-3 text-xs">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Informations Gأ©nأ©rales</h3>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                <span className="text-gray-500">Date rأ©fأ©rence</span>
+                <span className="font-semibold text-gray-900">{stats.total.date_reference ? formatDate(stats.total.date_reference) : '-'}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                <span className="text-gray-500">Localisation</span>
+                <span className="font-semibold text-gray-900">Maroc (Agadir)</span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                <span className="text-gray-500">ID Portefeuille</span>
+                <button
+                  onClick={() => handleCopyCode(`GAD-${portfolioYear}-IMP`)}
+                  className="flex items-center gap-1 font-mono font-bold text-brand-600 hover:text-brand-700 transition cursor-pointer"
+                  title="Cliquer pour copier"
+                >
+                  <span>GAD-{portfolioYear}-IMP</span>
+                  {copiedId ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500">Total des impayأ©s</span>
+                <span className="font-mono font-extrabold text-emerald-700 text-sm">
+                  {formatMontant(stats.total.montant)}
+                </span>
+              </div>
+            </div>
+
+            {/* Status / Tags Pills */}
+            <div className="border-t border-gray-100 pt-4 text-left space-y-2">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Rأ©partition Statuts</h3>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-semibold text-[11px] rounded-lg border border-emerald-200/50">
+                  {regulariseCount} dossiers rأ©gularisأ©s
+                </span>
+                <span className="px-2.5 py-1 bg-brand-50 text-brand-700 font-semibold text-[11px] rounded-lg border border-brand-200/50">
+                  {chqData.count} Chأ¨ques
+                </span>
+                <span className="px-2.5 py-1 bg-violet-50 text-violet-700 font-semibold text-[11px] rounded-lg border border-violet-200/50">
+                  {lcnData.count} Effets LCN
+                </span>
+              </div>
+            </div>
+
+            {/* View Detailed Record Link */}
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('/impayes/dossiers')}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-brand-600 hover:text-brand-700 hover:bg-brand-50 rounded-xl transition cursor-pointer"
+              >
+                <span>Voir le registre complet</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </Card>
+        </div>
+
+        {/* RIGHT MAIN CONTENT AREA */}
+        <div className="space-y-5">
+
+          {/* Top Metric Cards Row */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
+                <Layers className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total impayأ©s</p>
+                <p className="text-lg font-extrabold text-gray-900 leading-tight">{stats.total.count} Dossiers</p>
+                <p className="text-xs font-mono font-semibold text-sky-600 truncate">{formatMontant(stats.total.montant)}</p>
+              </div>
+            </Card>
+
+            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Chأ¨ques (CHQ)</p>
+                <p className="text-lg font-extrabold text-gray-900 leading-tight">{chqData.count} Dossiers</p>
+                <p className="text-xs font-mono font-semibold text-brand-600 truncate">{formatMontant(chqData.total_montant)}</p>
+              </div>
+            </Card>
+
+            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Lettres de Change</p>
+                <p className="text-lg font-extrabold text-gray-900 leading-tight">{lcnData.count} Dossiers</p>
+                <p className="text-xs font-mono font-semibold text-violet-600 truncate">{formatMontant(lcnData.total_montant)}</p>
+              </div>
+            </Card>
+
+            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Dormants (7j+)</p>
+                <p className="text-lg font-extrabold text-gray-900 leading-tight">{stats.dossiersDormants} Dossier</p>
+                <p className="text-xs font-semibold text-emerald-600 truncate">Suivi actif أ  jour</p>
+              </div>
+            </Card>
+
+            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Taux Rأ©gularisation</p>
+                <p className="text-lg font-extrabold text-gray-900 leading-tight">{regulariseRate} %</p>
+                <p className="text-xs font-semibold text-emerald-600 truncate">{contentieuxCount} dossier(s) en contentieux</p>
+              </div>
+            </Card>
+          </div>
+
+          {/* Row 1: Full-width main evolution chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            {/* Main Evolution Chart by Period & Commercial */}
+            <EvolutionImpayesChart stats={stats} />
+
+            {/* Relance calendar below the chart */}
+            <div className="lg:col-span-12">
+              <Card className="p-4">
+                <RelanceCalendar />
+              </Card>
+            </div>
+          </div>
+
+          {/* Row 2: Bank Breakdown Bar Chart + Commercial Portfolio Breakdown */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-gray-900">Rأ©partition par Banque (DH)</h2>
+                <span className="text-xs text-gray-400">Top Banques</span>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={topBanques} margin={{ left: -10, right: 10, top: 10, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke={CHART_INK.gridline} strokeDasharray="3 3" />
+                  <XAxis dataKey="banque" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
+                  <Tooltip content={(p: any) => <ChartTooltip {...p} formatter={formatMontant} />} />
+                  <Bar dataKey="total_montant" name="Montant" radius={[6, 6, 0, 0]} maxBarSize={28} fill={SEQUENTIAL_BLUE[450]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-gray-900">Portefeuille par Commercial</h2>
+                <span className="text-xs text-gray-400">Montant total</span>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={stats.parCommercial} margin={{ left: -10, right: 10, top: 10, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke={CHART_INK.gridline} strokeDasharray="3 3" />
+                  <XAxis dataKey="commercial_nom" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
+                  <Tooltip content={(p: any) => <ChartTooltip {...p} formatter={formatMontant} />} />
+                  <Bar dataKey="total_montant" name="Montant" radius={[6, 6, 0, 0]} maxBarSize={28} fill="#6366f1" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+

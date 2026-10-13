@@ -1,0 +1,58 @@
+services:
+  identity-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gadimat_identity
+      POSTGRES_USER: gadimat
+      POSTGRES_PASSWORD: gadimat_local
+    ports: ["5541:5432"]
+    volumes:
+      - identity_data:/var/lib/postgresql/data
+      - ./database/migrations/001_central_identity.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gadimat -d gadimat_identity"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  cheques-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gadimat_cheques
+      POSTGRES_USER: gadimat
+      POSTGRES_PASSWORD: gadimat_local
+    ports: ["5542:5432"]
+    volumes:
+      - cheques_data:/var/lib/postgresql/data
+      - ./database/init/cheques/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gadimat -d gadimat_cheques"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  impayes-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gadimat_impayes
+      POSTGRES_USER: gadimat
+      POSTGRES_PASSWORD: gadimat_local
+    ports: ["5543:5432"]
+    volumes:
+      - impayes_data:/var/lib/postgresql/data
+      - ./apps/api/migrations/impayes/001_create_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./apps/api/migrations/impayes/003_add_dossier_dates.sql:/docker-entrypoint-initdb.d/003_dates.sql:ro
+      - ./apps/api/migrations/impayes/004_add_porteur.sql:/docker-entrypoint-initdb.d/004_porteur.sql:ro
+      - ./apps/api/migrations/impayes/005_add_partenaires_reference.sql:/docker-entrypoint-initdb.d/005_partenaires.sql:ro
+      - ./apps/api/migrations/impayes/007_users_email_gadimat_com.sql:/docker-entrypoint-initdb.d/007_email.sql:ro
+      - ./apps/api/migrations/impayes/008_audit_logs_abuse_indexes.sql:/docker-entrypoint-initdb.d/008_audit.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gadimat -d gadimat_impayes"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  identity_data:
+  cheques_data:
+  impayes_data:

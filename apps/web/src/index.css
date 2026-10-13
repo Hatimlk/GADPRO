@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "@heroui/styles";
+@source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+@theme {
+  --color-primary: #2c518f;
+  --color-secondary: #b2b2b1;
+  --font-sans: "Readex Pro Variable", "Readex Pro", sans-serif;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #1E293B;
+}
+
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button, a, [role="button"] { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.field { border: 1px solid #e2e8f0; border-radius: .75rem; background: white; padding: .65rem .8rem; font-size: .875rem; outline: none; }
+.field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgb(59 130 246 / .12); }
+.action { display: inline-flex; align-items: center; gap: .5rem; border-radius: .75rem; padding: .65rem .9rem; font-size: .8125rem; font-weight: 700; cursor: pointer; }
+.action.primary { background: #2563eb; color: white; }
+.action.secondary { border: 1px solid #e2e8f0; background: white; color: #475569; }
+.select-mini { border: 1px solid #e2e8f0; border-radius: .6rem; background: white; padding: .45rem .65rem; font-size: .75rem; }
+table th { background: #f8fafc; padding: .8rem; text-align: left; color: #64748b; font-size: .6875rem; text-transform: uppercase; letter-spacing: .04em; }
+table td { border-top: 1px solid #f1f5f9; padding: .8rem; white-space: nowrap; }
+table td button { padding: .35rem; color: #94a3b8; } table td button svg { width: 1rem; height: 1rem; }
+@media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } .action:active, button:active { transform: scale(.98); } }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-area, #print-area * {
+    visibility: visible;
+  }
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+

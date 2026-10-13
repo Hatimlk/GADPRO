@@ -1,0 +1,4 @@
+# Rappels d'actions (adapter l'heure métier après validation)
+15 7 * * * gadimat bash -lc 'set -a; source /etc/gadimat/gadimat.env; curl --fail --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" http://127.0.0.1:4000/api/impayes/cron/action-reminders' >> /var/log/gadimat/cron.log 2>&1
+# Synchronisation Open-Prod : le compte technique doit posséder la permission impayes:sync.
+# 0 */2 * * * gadimat bash -lc 'set -a; source /etc/gadimat/gadimat.env; cd /var/www/gadimat/current && node apps/api/src/domains/impayes/scripts/syncErpToApp.js' >> /var/log/gadimat/erp-sync.log 2>&1

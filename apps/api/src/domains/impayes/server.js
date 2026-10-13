@@ -1,0 +1,82 @@
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+import config from './config/env.js';
+import authRoutes from './routes/auth.js';
+import dossierRoutes from './routes/dossiers.js';
+import adminRoutes from './routes/admin.js';
+import exportRoutes from './routes/export.js';
+import erpRoutes from './routes/erp.js';
+import erpSyncRoutes from './routes/erpSync.js';
+import cronRoutes from './routes/cron.js';
+import { query } from './config/db.js';
+import { ipRateLimiter } from './middleware/rateLimiter.js';
+
+dotenv.config();
+
+const app = express();
+
+// Nécessaire derrière le proxy Vercel pour que req.ip (utilisé par le rate limiting)
+// reflète la vraie IP cliente plutôt que celle du proxy.
+app.set('trust proxy', 1);
+
+// Security middleware
+app.use(helmet());
+app.use(cors({ origin: config.corsOrigin, credentials: true }));
+app.use(express.json({ limit: '10mb' }));
+
+// Rate limiting global (toutes les routes API). Les routes sensibles (login, reset de mot
+// de passe, creation d'utilisateur, webhook ERP) ont leurs propres limites, plus strictes,
+// definies directement sur leur routeur.
+app.use('/api/', ipRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  name: 'global_api',
+  message: 'Trop de requetes, veuillez reessayer plus tard',
+}));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/dossiers', dossierRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/erp', erpRoutes);
+app.use('/api/erp-sync', erpSyncRoutes);
+app.use('/api/cron', cronRoutes);
+
+// Health check
+app.get('/api/health', async (req, res) => {
+  try {
+    const result = await query('SELECT COUNT(*)::int AS dossiers FROM dossiers');
+    res.json({ status: 'ok', database: 'connected', dossiers: result.rows[0].dossiers, timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(503).json({ status: 'error', database: 'unavailable', timestamp: new Date().toISOString() });
+  }
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route non trouvee' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'Fichier trop volumineux (max 10 Mo)' });
+  }
+  if (err.message && err.message.includes('Fichier Excel')) {
+    return res.status(400).json({ error: err.message });
+  }
+  console.error('Erreur non geree:', err);
+  res.status(500).json({ error: 'Erreur serveur interne' });
+});
+
+if (!process.env.VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`Serveur demarre sur le port ${config.port}`);
+  });
+}
+
+export default app;

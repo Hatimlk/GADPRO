@@ -1,0 +1,22 @@
+{
+  "name": "gadimat-platform",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @gadimat/api\" \"npm run dev -w @gadimat/web\"",
+    "build": "npm run build -w @gadimat/shared && npm run build -w @gadimat/web",
+    "test": "npm run test -w @gadimat/api",
+    "typecheck": "npm run typecheck -w @gadimat/web",
+    "start": "npm run start -w @gadimat/api"
+    ,"local:db": "docker compose -f compose.local.yml up -d --wait"
+    ,"local:seed": "node --env-file=.env database/scripts/seed-local.js"
+    ,"verify:local-rbac": "node --env-file=.env scripts/verify-local-rbac.js"
+    ,"local:down": "docker compose -f compose.local.yml down"
+    ,"local:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-local.ps1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

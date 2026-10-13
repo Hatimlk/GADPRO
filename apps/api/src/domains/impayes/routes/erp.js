@@ -1,0 +1,510 @@
+import { Router } from 'express';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { query } from '../config/db.js';
+import { ensureErpTrackingTables } from '../services/schema.js';
+import { validate, validateQuery, createActionSchema, erpImpayesQuerySchema, statutBodySchema, reaffecterBodySchema } from '../schemas/validation.js';
+import { logAudit } from '../middleware/audit.js';
+import { sendCommercialActionNotification } from '../services/mailer.js';
+import { normalizeCommercialIdentity, normalizedCommercialIdentitySql } from '../services/commercialIdentity.js';
+
+const router = Router();
+router.use(authenticateToken);
+router.use(async (_req, res, next) => {
+  try {
+    await ensureErpTrackingTables();
+    next();
+  } catch (error) {
+    console.error('Initialisation suivi ERP:', error.message);
+    res.status(503).json({ error: 'Base de suivi indisponible' });
+  }
+});
+
+function parseErpId(value) {
+  const id = Number(String(value).replace(/^erp-/, ''));
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+async function findEffectiveCommercial(dossier) {
+  if (dossier.commercial_id) {
+    const assigned = await query(
+      "SELECT id, nom, email FROM users WHERE id = $1 AND actif = true AND role = 'commercial'",
+      [dossier.commercial_id]
+    );
+    if (assigned.rows[0]) return assigned.rows[0];
+  }
+
+  const normalizedName = normalizeCommercialIdentity(dossier.commercial_nom || dossier.erp_commercial_nom);
+  if (!normalizedName) return null;
+
+  const users = await query(
+    "SELECT id, nom, email FROM users WHERE actif = true AND role = 'commercial'"
+  );
+  return users.rows.find((user) => normalizeCommercialIdentity(user.nom) === normalizedName) || null;
+}
+
+function addCommercialScope(conditions, params, user) {
+  if (user?.role !== 'commercial') return;
+  params.push(user.id);
+  const userIdParam = `$${params.length}`;
+  params.push(normalizeCommercialIdentity(user.nom));
+  const userNameParam = `$${params.length}`;
+  conditions.push(`(s.commercial_id = ${userIdParam} OR ${normalizedCommercialIdentitySql("COALESCE(NULLIF(BTRIM(u.nom), ''), v.erp_commercial_nom)")} = ${userNameParam})`);
+}
+
+const selectDossier = `
+  SELECT v.*, s.statut AS suivi_statut, s.observations AS suivi_observations,
+         s.commercial_id, s.date_derniere_action, s.date_creation AS suivi_date_creation,
+         s.date_derniere_modification, u.nom AS suivi_commercial_nom
+  FROM erp_impayes_snapshot v
+  LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+  LEFT JOIN users u ON u.id = s.commercial_id
+`;
+
+function mapDossier(row) {
+  return {
+    id: `erp-${row.erp_voucher_id}`,
+    source: 'ERP',
+    date_saisie: row.date_saisie,
+    date_facture: row.date_facture,
+    date_echeance: row.date_echeance,
+    montant: Number(row.montant || 0),
+    type_valeur: row.type_valeur,
+    numero_valeur: row.numero_valeur,
+    nom_tire: row.nom_tire,
+    porteur: row.porteur || '',
+    relation: row.relation || 'CD',
+    banque: row.banque || 'Non renseignee',
+    statut: row.suivi_statut || 'Attente retour du client',
+    observations: row.suivi_observations || '',
+    commercial_id: row.commercial_id || null,
+    commercial_nom: row.suivi_commercial_nom || row.erp_commercial_nom || null,
+    erp_commercial_nom: row.erp_commercial_nom || null,
+    date_derniere_action: row.date_derniere_action || null,
+    date_creation: row.suivi_date_creation || row.synced_at,
+    date_derniere_modification: row.date_derniere_modification || row.synced_at,
+    date_cloture: null,
+  };
+}
+
+function pivotEvolution(rows) {
+  const periods = new Map();
+  for (const row of rows) {
+    if (!periods.has(row.periode)) {
+      periods.set(row.periode, {
+        periode: row.periode,
+        label: row.label || row.periode,
+        total_montant: 0,
+        count: 0,
+        commercials: {},
+      });
+    }
+    const period = periods.get(row.periode);
+    const amount = Number(row.total_montant || 0);
+    const count = Number(row.count || 0);
+    const commercial = row.commercial_nom || 'Non affecté';
+    period.total_montant += amount;
+    period.count += count;
+    period.commercials[commercial] = (period.commercials[commercial] || 0) + amount;
+    period[commercial] = (period[commercial] || 0) + amount;
+  }
+  return Array.from(periods.values());
+}
+
+function buildFilters(requestQuery, user) {
+  const conditions = ['v.actif = true'];
+  const params = [];
+  const add = (sql, value) => {
+    params.push(value);
+    conditions.push(sql.split('?').join(`$${params.length}`));
+  };
+  // Un commercial ne doit voir que les dossiers qui lui sont affectés
+  addCommercialScope(conditions, params, user);
+  if (requestQuery.search) add('(v.nom_tire ILIKE ? OR v.numero_valeur ILIKE ? OR v.banque ILIKE ?)', `%${requestQuery.search}%`);
+  if (requestQuery.nom_tire) add('v.nom_tire = ?', requestQuery.nom_tire);
+  if (requestQuery.banque) add('v.banque = ?', requestQuery.banque);
+  if (requestQuery.relation) add('v.relation = ?', requestQuery.relation);
+  if (requestQuery.commercial_id === '__UNASSIGNED__') {
+    conditions.push("COALESCE(NULLIF(BTRIM(u.nom), ''), NULLIF(BTRIM(v.erp_commercial_nom), '')) IS NULL");
+  } else if (requestQuery.commercial_id) {
+    add("COALESCE(NULLIF(BTRIM(u.nom), ''), NULLIF(BTRIM(v.erp_commercial_nom), '')) = ?", requestQuery.commercial_id);
+  }
+  if (requestQuery.type_valeur) add('v.type_valeur = ?', requestQuery.type_valeur);
+  if (requestQuery.date_debut) add('v.date_saisie >= ?', requestQuery.date_debut);
+  if (requestQuery.date_fin) add('v.date_saisie <= ?', requestQuery.date_fin);
+  if (requestQuery.montant_min !== undefined) add('v.montant >= ?', requestQuery.montant_min);
+  if (requestQuery.montant_max !== undefined) add('v.montant <= ?', requestQuery.montant_max);
+  if (requestQuery.statut) add(`COALESCE(s.statut, 'Attente retour du client') = ?`, requestQuery.statut);
+  return { where: `WHERE ${conditions.join(' AND ')}`, params };
+}
+
+router.get('/impayes', validateQuery(erpImpayesQuerySchema), async (req, res) => {
+  try {
+    const { page, limit } = req.validatedQuery;
+    const offset = (page - 1) * limit;
+    const { where, params } = buildFilters(req.validatedQuery, req.user);
+    const sortMap = { date_saisie: 'v.date_saisie', date_facture: 'v.date_facture', date_echeance: 'v.date_echeance', montant: 'v.montant', nom_tire: 'v.nom_tire', type_valeur: 'v.type_valeur' };
+    const sort = sortMap[req.validatedQuery.sort] || 'v.date_saisie';
+    const order = String(req.validatedQuery.order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const [count, rows] = await Promise.all([
+      query(`SELECT COUNT(*)::int AS count
+        FROM erp_impayes_snapshot v
+        LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+        LEFT JOIN users u ON u.id = s.commercial_id
+        ${where}`, params),
+      query(`${selectDossier} ${where} ORDER BY ${sort} ${order} NULLS LAST LIMIT $${params.length + 1} OFFSET $${params.length + 2}`, [...params, limit, offset]),
+    ]);
+    res.json({ dossiers: rows.rows.map(mapDossier), total: count.rows[0].count, page, limit, totalPages: Math.ceil(count.rows[0].count / limit) });
+  } catch (error) {
+    console.error('Erreur liste impayes synchronises:', error.message);
+    res.status(503).json({ error: 'Donnees ERP synchronisees indisponibles' });
+  }
+});
+
+router.get('/impayes/:id', async (req, res) => {
+  const id = parseErpId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Identifiant ERP invalide' });
+  const result = await query(`${selectDossier} WHERE v.erp_voucher_id = $1 AND v.actif = true`, [id]);
+  if (!result.rows[0]) return res.status(404).json({ error: 'Impaye ERP introuvable' });
+  const dossier = mapDossier(result.rows[0]);
+  if (req.user.role === 'commercial') {
+    const effectiveOwner = normalizeCommercialIdentity(dossier.commercial_nom);
+    const ownsDossier = dossier.commercial_id === req.user.id
+      || (effectiveOwner && effectiveOwner === normalizeCommercialIdentity(req.user.nom));
+    if (!ownsDossier) return res.status(403).json({ error: 'Acces refuse' });
+  }
+  const actions = await query(`SELECT a.*, ('erp-' || a.erp_voucher_id) AS dossier_id, u.nom AS auteur_nom FROM erp_actions a LEFT JOIN users u ON u.id = a.auteur_id WHERE a.erp_voucher_id = $1 ORDER BY a.date_action DESC`, [id]);
+  res.json({ ...dossier, actions: actions.rows });
+});
+
+router.get('/partenaires', async (req, res) => {
+  const { where, params } = buildFilters({}, req.user);
+  const result = await query(
+    `SELECT DISTINCT v.nom_tire AS nom
+     FROM erp_impayes_snapshot v
+     LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+     LEFT JOIN users u ON u.id = s.commercial_id
+     ${where} AND v.nom_tire <> ''
+     ORDER BY nom`,
+    params
+  );
+  res.json(result.rows.map((row) => row.nom));
+});
+
+router.get('/calendrier', async (req, res) => {
+  try {
+    const { where, params } = buildFilters({}, req.user);
+    const result = await query(
+      `${selectDossier} ${where} AND v.date_echeance IS NOT NULL
+       ORDER BY v.date_echeance, v.nom_tire`,
+      params
+    );
+    res.json(result.rows.map(mapDossier));
+  } catch (error) {
+    console.error('Erreur calendrier ERP:', error.message);
+    res.status(503).json({ error: 'Calendrier ERP indisponible' });
+  }
+});
+
+router.get('/notifications', async (req, res) => {
+  const result = await query(
+    `SELECT id, ('erp-' || erp_voucher_id) AS dossier_id, action_id, titre, message,
+            lu, date_creation, date_lecture
+     FROM notifications
+     WHERE user_id = $1
+     ORDER BY date_creation DESC
+     LIMIT 30`,
+    [req.user.id]
+  );
+  res.json({
+    notifications: result.rows,
+    unreadCount: result.rows.filter((notification) => !notification.lu).length,
+  });
+});
+
+router.patch('/notifications/:id/read', async (req, res) => {
+  const result = await query(
+    `UPDATE notifications
+     SET lu = true, date_lecture = COALESCE(date_lecture, NOW())
+     WHERE id = $1 AND user_id = $2
+     RETURNING id, lu, date_lecture`,
+    [req.params.id, req.user.id]
+  );
+  if (!result.rows[0]) return res.status(404).json({ error: 'Notification introuvable' });
+  res.json(result.rows[0]);
+});
+
+router.patch('/notifications/read-all', async (req, res) => {
+  await query(
+    `UPDATE notifications SET lu = true, date_lecture = COALESCE(date_lecture, NOW())
+     WHERE user_id = $1 AND lu = false`,
+    [req.user.id]
+  );
+  res.json({ success: true });
+});
+
+router.get('/alerts', async (req, res) => {
+  try {
+    const { where, params } = buildFilters({}, req.user);
+    const base = `FROM erp_impayes_snapshot v
+      LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+      LEFT JOIN users u ON u.id = s.commercial_id`;
+    const [rappels, dormants, contentieux] = await Promise.all([
+      query(`SELECT v.*, s.statut AS suivi_statut, s.observations AS suivi_observations,
+          s.commercial_id, s.date_derniere_action, s.date_creation AS suivi_date_creation,
+          s.date_derniere_modification, u.nom AS suivi_commercial_nom,
+          a.id AS action_id, a.contenu AS action_contenu, a.type_action AS action_type,
+          a.date_rappel, (CURRENT_DATE - a.date_rappel)::int AS jours_retard
+        ${base}
+        JOIN erp_actions a ON a.erp_voucher_id = v.erp_voucher_id
+        ${where} AND a.date_rappel < CURRENT_DATE
+        ORDER BY a.date_rappel, v.nom_tire`, params),
+      query(`SELECT v.*, s.statut AS suivi_statut, s.observations AS suivi_observations,
+          s.commercial_id, s.date_derniere_action, s.date_creation AS suivi_date_creation,
+          s.date_derniere_modification, u.nom AS suivi_commercial_nom,
+          FLOOR(EXTRACT(EPOCH FROM (NOW() - COALESCE(s.date_derniere_action, v.synced_at))) / 86400)::int AS jours_sans_action
+        ${base} ${where}
+          AND COALESCE(s.date_derniere_action, v.synced_at) < NOW() - INTERVAL '7 days'
+        ORDER BY COALESCE(s.date_derniere_action, v.synced_at)`, params),
+      query(`SELECT v.*, s.statut AS suivi_statut, s.observations AS suivi_observations,
+          s.commercial_id, s.date_derniere_action, s.date_creation AS suivi_date_creation,
+          s.date_derniere_modification, u.nom AS suivi_commercial_nom
+        ${base} ${where}
+          AND COALESCE(s.statut, 'Attente retour du client') IN ('Contentieux', 'Pré-contentieux')
+        ORDER BY v.montant DESC`, params),
+    ]);
+    res.json({
+      rappels: rappels.rows.map((row) => ({
+        ...mapDossier(row),
+        action_id: row.action_id,
+        action_contenu: row.action_contenu,
+        action_type: row.action_type,
+        date_rappel: row.date_rappel,
+        jours_retard: Number(row.jours_retard || 0),
+      })),
+      dormants: dormants.rows.map((row) => ({ ...mapDossier(row), jours_sans_action: Number(row.jours_sans_action || 0) })),
+      contentieux: contentieux.rows.map(mapDossier),
+    });
+  } catch (error) {
+    console.error('Erreur alertes ERP:', error.message);
+    res.status(503).json({ error: 'Alertes ERP indisponibles' });
+  }
+});
+
+router.get('/filters', async (req, res) => {
+  try {
+    const conditions = ['v.actif = true'];
+    const params = [];
+    addCommercialScope(conditions, params, req.user);
+    const joins = `FROM erp_impayes_snapshot v
+      LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+      LEFT JOIN users u ON u.id = s.commercial_id
+      WHERE ${conditions.join(' AND ')}`;
+    const [partners, commercials, statuses, banks] = await Promise.all([
+      query(`SELECT DISTINCT v.nom_tire AS value ${joins} AND NULLIF(BTRIM(v.nom_tire), '') IS NOT NULL ORDER BY value`, params),
+      query(`SELECT DISTINCT COALESCE(NULLIF(BTRIM(u.nom), ''), NULLIF(BTRIM(v.erp_commercial_nom), '')) AS value ${joins} ORDER BY value NULLS LAST`, params),
+      query(`SELECT libelle AS value FROM statuts_reference WHERE actif = true ORDER BY ordre, libelle`),
+      query(`SELECT DISTINCT COALESCE(NULLIF(BTRIM(v.banque), ''), 'Non renseignee') AS value ${joins} ORDER BY value`, params),
+    ]);
+    const commercialValues = commercials.rows.map((row) => row.value).filter(Boolean);
+    const hasUnassigned = commercials.rows.some((row) => !row.value);
+    res.json({
+      partenaires: partners.rows.map((row) => row.value),
+      commerciaux: [
+        ...commercialValues.map((name) => ({ id: name, nom: name })),
+        ...(hasUnassigned ? [{ id: '__UNASSIGNED__', nom: 'Non affecte' }] : []),
+      ],
+      statuts: statuses.rows.map((row) => row.value),
+      banques: banks.rows.map((row) => row.value),
+    });
+  } catch (error) {
+    console.error('Erreur filtres ERP:', error.message);
+    res.status(503).json({ error: 'Filtres ERP indisponibles' });
+  }
+});
+
+router.get('/stats', async (req, res) => {
+  try {
+    const isCommercial = req.user.role === 'commercial';
+    const params = isCommercial ? [req.user.id, normalizeCommercialIdentity(req.user.nom)] : [];
+    const filterClause = isCommercial
+      ? `AND (s.commercial_id = $1 OR ${normalizedCommercialIdentitySql("COALESCE(NULLIF(BTRIM(u.nom), ''), v.erp_commercial_nom)")} = $2)`
+      : '';
+    const base = `FROM erp_impayes_snapshot v
+      LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+      LEFT JOIN users u ON u.id = s.commercial_id
+      WHERE v.actif = true ${filterClause}`;
+    const commercialName = `COALESCE(NULLIF(BTRIM(u.nom), ''), NULLIF(BTRIM(v.erp_commercial_nom), ''), 'Non affecté')`;
+    const [total, statuses, banks, commercials, types, monthly, weeklyRaw, monthlyRaw, annualRaw, dormant, sync] = await Promise.all([
+      query(`SELECT COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS montant, MAX(v.date_saisie) AS date_reference ${base}`, params),
+      query(`SELECT COALESCE(NULLIF(BTRIM(s.statut), ''), 'Attente retour du client') AS statut,
+                    COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant
+             ${base}
+             GROUP BY 1 ORDER BY total_montant DESC`, params),
+      query(`SELECT COALESCE(NULLIF(BTRIM(v.banque), ''), 'Non renseignée') AS banque,
+                    COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant
+             ${base}
+             GROUP BY 1 ORDER BY total_montant DESC`, params),
+      query(`SELECT ${commercialName} AS commercial_nom,
+                    COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant
+             ${base}
+             GROUP BY 1 ORDER BY total_montant DESC`, params),
+      query(`SELECT v.type_valeur, COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant ${base} GROUP BY v.type_valeur ORDER BY v.type_valeur`, params),
+      query(`SELECT TO_CHAR(v.date_saisie, 'YYYY-MM') AS mois, COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant ${base} GROUP BY 1 ORDER BY 1`, params),
+      query(`SELECT TO_CHAR(DATE_TRUNC('week', v.date_saisie), 'IYYY-"W"IW') AS periode,
+                    TO_CHAR(DATE_TRUNC('week', v.date_saisie), '"Sem." IW IYYY') AS label,
+                    ${commercialName} AS commercial_nom,
+                    COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant
+             ${base}
+             GROUP BY DATE_TRUNC('week', v.date_saisie), 1, 2, 3
+             ORDER BY DATE_TRUNC('week', v.date_saisie)`, params),
+      query(`SELECT TO_CHAR(v.date_saisie, 'YYYY-MM') AS periode,
+                    TO_CHAR(v.date_saisie, 'YYYY-MM') AS label,
+                    ${commercialName} AS commercial_nom,
+                    COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant
+             ${base}
+             GROUP BY 1, 2, 3 ORDER BY 1`, params),
+      query(`SELECT TO_CHAR(v.date_saisie, 'YYYY') AS periode,
+                    TO_CHAR(v.date_saisie, 'YYYY') AS label,
+                    ${commercialName} AS commercial_nom,
+                    COUNT(*)::int AS count, COALESCE(SUM(v.montant), 0)::float8 AS total_montant
+             ${base}
+             GROUP BY 1, 2, 3 ORDER BY 1`, params),
+      query(`SELECT COUNT(*)::int AS count ${base}
+             AND COALESCE(s.date_derniere_action, s.date_creation, v.synced_at) < NOW() - INTERVAL '7 days'`, params),
+      query(`SELECT MAX(completed_at) AS last_sync FROM erp_sync_runs WHERE status = 'success'`),
+    ]);
+    res.json({
+      total: total.rows[0],
+      parStatut: statuses.rows,
+      parBanque: banks.rows,
+      parCommercial: commercials.rows,
+      parType: types.rows,
+      evolutionMensuelle: monthly.rows.slice(-12),
+      evolutionHebdo: pivotEvolution(weeklyRaw.rows).slice(-16),
+      evolutionMensuelleDetail: pivotEvolution(monthlyRaw.rows).slice(-12),
+      evolutionAnnuelle: pivotEvolution(annualRaw.rows),
+      dossiersDormants: dormant.rows[0]?.count || 0,
+      lastSync: sync.rows[0]?.last_sync || null,
+    });
+  } catch (error) {
+    console.error('Erreur statistiques ERP:', error.message);
+    res.status(503).json({ error: 'Donnees ERP synchronisees indisponibles' });
+  }
+});
+
+async function assertErpOwnership(req, res, id) {
+  if (req.user.role !== 'commercial') return true;
+  const assign = await query(
+    `SELECT s.commercial_id, v.erp_commercial_nom, u.nom AS suivi_commercial_nom
+     FROM erp_impayes_snapshot v
+     LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
+     LEFT JOIN users u ON u.id = s.commercial_id
+     WHERE v.erp_voucher_id = $1 AND v.actif = true`,
+    [id]
+  );
+  const ownerId = assign.rows[0]?.commercial_id || null;
+  const effectiveOwner = normalizeCommercialIdentity(assign.rows[0]?.suivi_commercial_nom || assign.rows[0]?.erp_commercial_nom);
+  const ownsDossier = ownerId === req.user.id
+    || (effectiveOwner && effectiveOwner === normalizeCommercialIdentity(req.user.nom));
+  if (!ownsDossier) {
+    res.status(403).json({ error: 'Accès refusé' });
+    return false;
+  }
+  return true;
+}
+
+router.patch('/impayes/:id/statut', validate(statutBodySchema), async (req, res) => {
+  const id = parseErpId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Identifiant ERP invalide' });
+  if (req.user.role === 'lecture_seule') return res.status(403).json({ error: 'Lecture seule' });
+  if (!(await assertErpOwnership(req, res, id))) return;
+  const { statut } = req.validated;
+  const result = await query(`INSERT INTO erp_dossier_suivi (erp_voucher_id, statut) VALUES ($1, $2) ON CONFLICT (erp_voucher_id) DO UPDATE SET statut = EXCLUDED.statut, date_derniere_modification = NOW() RETURNING *`, [id, statut]);
+  await logAudit(req.user.id, null, 'erp_statut', { erp_voucher_id: id, statut });
+  res.json(result.rows[0]);
+});
+
+router.post('/impayes/:id/actions', validate(createActionSchema), async (req, res) => {
+  const id = parseErpId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Identifiant ERP invalide' });
+  if (req.user.role === 'lecture_seule') return res.status(403).json({ error: 'Lecture seule' });
+  if (req.validated.type_action === 'derogation' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Dérogation réservée aux administrateurs' });
+  }
+  if (!(await assertErpOwnership(req, res, id))) return;
+  await query(`INSERT INTO erp_dossier_suivi (erp_voucher_id) VALUES ($1) ON CONFLICT DO NOTHING`, [id]);
+  const result = await query(`INSERT INTO erp_actions (erp_voucher_id, auteur_id, contenu, type_action, date_rappel) VALUES ($1, $2, $3, $4, $5) RETURNING *`, [id, req.user.id, req.validated.contenu, req.validated.type_action, req.validated.date_rappel || null]);
+  await query(`UPDATE erp_dossier_suivi SET date_derniere_action = NOW(), date_derniere_modification = NOW() WHERE erp_voucher_id = $1`, [id]);
+  await logAudit(req.user.id, null, 'erp_action', { erp_voucher_id: id, action_id: result.rows[0].id });
+  const action = await query(`SELECT a.*, ('erp-' || a.erp_voucher_id) AS dossier_id, u.nom AS auteur_nom FROM erp_actions a LEFT JOIN users u ON u.id = a.auteur_id WHERE a.id = $1`, [result.rows[0].id]);
+
+  // Les affectations ERP ne possèdent pas toujours de commercial_id local :
+  // dans ce cas, retrouver le compte commercial actif à partir du nom ERP.
+  try {
+    const dossierResult = await query(`${selectDossier} WHERE v.erp_voucher_id = $1 AND v.actif = true`, [id]);
+    if (dossierResult.rows[0]) {
+      const dossier = mapDossier(dossierResult.rows[0]);
+      const commercial = await findEffectiveCommercial(dossier);
+      if (commercial && commercial.id !== req.user.id) {
+        await query(
+          `INSERT INTO notifications (user_id, erp_voucher_id, action_id, titre, message)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            commercial.id,
+            id,
+            result.rows[0].id,
+            req.validated.type_action === 'relance' ? 'Nouvelle relance' : 'Nouvelle action',
+            `${req.user.nom || 'Un utilisateur'} : ${req.validated.contenu}`,
+          ]
+        );
+        if (commercial.email) {
+          await sendCommercialActionNotification({
+            commercial,
+            dossier,
+            action: result.rows[0],
+            auteurNom: req.user.nom || 'Un utilisateur',
+          });
+        }
+      }
+    }
+  } catch (mailError) {
+    // La relance doit rester enregistrée même si le SMTP est momentanément indisponible.
+    console.error('Erreur notification email ERP:', mailError.message);
+  }
+
+  res.status(201).json(action.rows[0]);
+});
+
+router.delete('/impayes/:id/actions/:actionId', async (req, res) => {
+  const id = parseErpId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Identifiant ERP invalide' });
+  const isAuthorized = req.user.role === 'admin' || req.user.email === 'franck.guillet@gadimat.com';
+  if (!isAuthorized) {
+    return res.status(403).json({ error: 'Suppression réservée aux administrateurs' });
+  }
+
+  const existing = await query(`SELECT id FROM erp_actions WHERE id = $1 AND erp_voucher_id = $2`, [req.params.actionId, id]);
+  if (!existing.rows[0]) return res.status(404).json({ error: 'Action introuvable' });
+
+  await query(`DELETE FROM notifications WHERE action_id = $1`, [req.params.actionId]);
+  await query(`DELETE FROM audit_logs WHERE action_type = 'erp_action' AND details_json->>'action_id' = $1`, [req.params.actionId]);
+  await query(`DELETE FROM erp_actions WHERE id = $1`, [req.params.actionId]);
+  await query(
+    `UPDATE erp_dossier_suivi SET date_derniere_action = (SELECT MAX(date_action) FROM erp_actions WHERE erp_voucher_id = $1), date_derniere_modification = NOW() WHERE erp_voucher_id = $1`,
+    [id]
+  );
+
+  res.json({ success: true });
+});
+
+router.patch('/impayes/:id/reaffecter', requireRole('admin', 'responsable_recouvrement'), validate(reaffecterBodySchema), async (req, res) => {
+  const id = parseErpId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Identifiant ERP invalide' });
+  const { commercial_id } = req.validated;
+  const user = await query(`SELECT id FROM users WHERE id = $1 AND actif = true AND role = 'commercial'`, [commercial_id]);
+  if (!user.rows[0]) return res.status(400).json({ error: 'Commercial destinataire introuvable ou inactif' });
+  const result = await query(`INSERT INTO erp_dossier_suivi (erp_voucher_id, commercial_id) VALUES ($1, $2) ON CONFLICT (erp_voucher_id) DO UPDATE SET commercial_id = EXCLUDED.commercial_id, date_derniere_modification = NOW() RETURNING *`, [id, commercial_id]);
+  res.json(result.rows[0]);
+});
+
+export default router;
