@@ -35,9 +35,17 @@ const blankDraft = (): UserDraft => ({
 
 export function ModuleDashboard() {
   const { currentUser, logout } = useApp();
-  const allowed = Object.entries(modules).filter(([code]) => code === 'administration'
+  const hasCheques = currentUser?.accesses?.some((access) => access.module === 'cheques') ?? false;
+  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations') ?? false;
+  const displayedModules = {
+    ...modules,
+    cheques: { ...modules.cheques, href: hasCheques ? '/cheques' : '/cheques/consommations' },
+  };
+  const allowed = Object.entries(displayedModules).filter(([code]) => code === 'administration'
     ? currentUser?.platformAdmin
-    : currentUser?.accesses?.some((access) => access.module === code));
+    : code === 'cheques'
+      ? hasCheques || hasConsumptions
+      : currentUser?.accesses?.some((access) => access.module === code));
   return <main className="min-h-screen bg-slate-50 p-5 sm:p-8 md:p-10"><div className="mx-auto max-w-6xl">
     <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-bold text-blue-600">GADIMAT</p><h1 className="text-2xl font-black text-slate-900 sm:text-3xl">Bonjour {currentUser?.name}</h1><p className="mt-1 text-slate-500">Sélectionnez un module autorisé.</p></div><button onClick={() => void logout()} className="flex w-fit items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-semibold"><LogOut className="h-4 w-4" />Déconnexion</button></header>
     {allowed.length ? <div className="grid gap-5 md:grid-cols-2">{allowed.map(([code, item]) => <Link key={code} to={item.href} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"><span className={`inline-flex rounded-xl p-3 text-white ${item.color}`}><item.icon className="h-6 w-6" /></span><h2 className="mt-5 text-xl font-bold text-slate-900">{item.label}</h2><p className="mt-1 text-sm text-slate-500">{item.description}</p></Link>)}</div> : <p className="rounded-2xl border bg-white p-8 text-slate-600">Aucun module ne vous est affecté.</p>}

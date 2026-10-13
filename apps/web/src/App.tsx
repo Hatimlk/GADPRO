@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import { AppProvider, useApp } from './lib/AppContext';
 import { Layout } from './components/layout/Layout';
 import { AuthProvider as ImpayesAuthProvider } from './impayes/contexts/AuthContext';
@@ -35,6 +35,11 @@ function Protected({ module, children }: { module?: string; children: ReactNode 
   return <>{children}</>;
 }
 function ImpayesGate() { return <Protected module="impayes"><ImpayesAuthProvider><Outlet /></ImpayesAuthProvider></Protected>; }
+function ChequesGate() { return <Protected module="cheques"><Outlet /></Protected>; }
+function LegacyConsumptionBranchRedirect() {
+  const { code } = useParams();
+  return <Navigate to={`/cheques/consommations/branches/${encodeURIComponent(code || '')}`} replace />;
+}
 function ChequesAdmin({ children }: { children: ReactNode }) {
   const { currentUser } = useApp();
   const role = currentUser?.accesses?.find((access) => access.module === 'cheques')?.role;
@@ -46,22 +51,26 @@ export default function App() {
     <Route path="/login" element={<LoginPage />} />
     <Route path="/dashboard" element={<Protected><ModuleDashboard /></Protected>} />
     <Route path="/administration" element={<Protected><AdministrationPage /></Protected>} />
-    <Route path="/cheques" element={<Protected module="cheques"><Layout /></Protected>}>
-      <Route index element={<ChequesDashboard />} />
-      <Route path="comptes" element={<BankAccounts />} /><Route path="regles" element={<RegleChecks />} />
-      <Route path="instances" element={<Instances />} /><Route path="impression" element={<PrintModule />} />
-      <Route path="virements" element={<Virements />} /><Route path="roles" element={<ChequesAdmin><Roles /></ChequesAdmin>} />
-      <Route path="calendrier" element={<Calendar />} /><Route path="partenaires" element={<Partners />} /><Route path="guide" element={<Guide />} />
+    <Route path="/cheques" element={<Protected><Layout /></Protected>}>
+      <Route element={<ChequesGate />}>
+        <Route index element={<ChequesDashboard />} />
+        <Route path="comptes" element={<BankAccounts />} /><Route path="regles" element={<RegleChecks />} />
+        <Route path="instances" element={<Instances />} /><Route path="impression" element={<PrintModule />} />
+        <Route path="virements" element={<Virements />} /><Route path="roles" element={<ChequesAdmin><Roles /></ChequesAdmin>} />
+        <Route path="calendrier" element={<Calendar />} /><Route path="partenaires" element={<Partners />} /><Route path="guide" element={<Guide />} />
+      </Route>
+      <Route path="consommations" element={<Protected module="consommations"><Consumptions /></Protected>} />
+      <Route path="consommations/branches/:code" element={<Protected module="consommations"><ConsumptionBranch /></Protected>} />
     </Route>
     <Route element={<ImpayesGate />}><Route path="/impayes" element={<ImpayesLayout />}>
       <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<ImpayesDashboard />} />
       <Route path="dossiers" element={<Dossiers />} /><Route path="dossiers/:id" element={<DossierDetail />} />
       <Route path="mes-dossiers" element={<Commercial />} /><Route path="alertes" element={<Alerts />} />
       <Route path="derogation" element={<Derogation />} /><Route path="admin" element={<ImpayesAdmin />} />
-      <Route path="consommations" element={<Protected module="consommations"><Consumptions /></Protected>} />
-      <Route path="consommations/branches/:code" element={<Protected module="consommations"><ConsumptionBranch /></Protected>} />
     </Route></Route>
-    <Route path="/consommations" element={<Navigate to="/impayes/consommations" replace />} />
+    <Route path="/consommations" element={<Navigate to="/cheques/consommations" replace />} />
+    <Route path="/impayes/consommations" element={<Navigate to="/cheques/consommations" replace />} />
+    <Route path="/impayes/consommations/branches/:code" element={<LegacyConsumptionBranchRedirect />} />
     <Route path="/403" element={<ForbiddenPage />} /><Route path="/404" element={<NotFoundPage />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} /><Route path="*" element={<NotFoundPage />} />
   </Routes></Suspense></AppProvider></BrowserRouter>;

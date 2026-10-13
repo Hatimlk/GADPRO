@@ -12,7 +12,8 @@ import {
   FileCheck,
   Clock,
   LogOut,
-  Send
+  Send,
+  Droplets
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/AppContext";
@@ -21,26 +22,27 @@ const NAV_GROUPS = [
   {
     title: "TABLEAU DE BORD",
     items: [
-      { name: "Tableau de bord", path: "/cheques", icon: LayoutDashboard },
-      { name: "Comptes", path: "/cheques/comptes", icon: Briefcase },
-      { name: "Rأ´les", path: "/cheques/roles", icon: UserCog, hasInfo: true },
+      { name: "Tableau de bord", path: "/cheques", icon: LayoutDashboard, requiredModule: "cheques" },
+      { name: "Comptes", path: "/cheques/comptes", icon: Briefcase, requiredModule: "cheques" },
+      { name: "Rأ´les", path: "/cheques/roles", icon: UserCog, hasInfo: true, requiredModule: "cheques" },
     ]
   },
   {
     title: "CHأˆQUES ET EFFETS",
     items: [
-      { name: "Rأ©glأ©s", path: "/cheques/regles", icon: FileCheck },
-      { name: "Instances", path: "/cheques/instances", icon: Clock },
-      { name: "Calendrier", path: "/cheques/calendrier", icon: CalendarDays },
-      { name: "Partenaires", path: "/cheques/partenaires", icon: Users },
-      { name: "Ordres de Virement", path: "/cheques/virements", icon: Send },
-      { name: "Impression", path: "/cheques/impression", icon: Printer },
+      { name: "Rأ©glأ©s", path: "/cheques/regles", icon: FileCheck, requiredModule: "cheques" },
+      { name: "Instances", path: "/cheques/instances", icon: Clock, requiredModule: "cheques" },
+      { name: "Calendrier", path: "/cheques/calendrier", icon: CalendarDays, requiredModule: "cheques" },
+      { name: "Partenaires", path: "/cheques/partenaires", icon: Users, requiredModule: "cheques" },
+      { name: "Ordres de Virement", path: "/cheques/virements", icon: Send, requiredModule: "cheques" },
+      { name: "Impression", path: "/cheques/impression", icon: Printer, requiredModule: "cheques" },
+      { name: "Consommations", path: "/cheques/consommations", icon: Droplets, requiredModule: "consommations" },
     ]
   },
   {
     title: "AIDE",
     items: [
-      { name: "Guide d'utilisation", path: "/cheques/guide", icon: BookOpen }
+      { name: "Guide d'utilisation", path: "/cheques/guide", icon: BookOpen, requiredModule: "cheques" }
     ]
   }
 ];
@@ -49,6 +51,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
   const location = useLocation();
   const { currentUser, logout } = useApp();
   const hasCheques = currentUser?.accesses?.some((access) => access.module === 'cheques');
+  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations');
 
   return (
     <div className={cn("w-[240px] bg-slate-900 h-[100dvh] flex flex-col text-slate-300", className)}>
@@ -64,11 +67,12 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
             </div>
             <div className="space-y-1">
               {group.items.map((item) => {
-                if (item.path.startsWith('/cheques') && !hasCheques) return null;
+                if (item.requiredModule === 'cheques' && !hasCheques) return null;
+                if (item.requiredModule === 'consommations' && !hasConsumptions) return null;
                 if (item.path === "/cheques/roles" && currentUser?.role !== "Administrateur") {
                   return null;
                 }
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
                 return (
                   <Link
                     key={item.path}

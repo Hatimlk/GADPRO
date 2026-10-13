@@ -4,7 +4,6 @@ import { ROLE_LABELS, cn } from '../utils';
 import { useAlerts } from '../hooks/useAlerts';
 import { Badge } from '../components/ui';
 import { api } from '../services/api';
-import { useApp } from '../../lib/AppContext';
 import {
   LayoutDashboard,
   FileText,
@@ -19,7 +18,6 @@ import {
   Search,
   ChevronDown,
   Mail,
-  Droplets,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -34,7 +32,6 @@ type AppNotification = {
 
 export function AppLayout() {
   const { user, logout } = useAuth();
-  const { currentUser } = useApp();
   const navigate = useNavigate();
   const { rappels, dormants, contentieux } = useAlerts();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -82,7 +79,6 @@ export function AppLayout() {
   };
 
   const isCommercial = user?.role === 'commercial';
-  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations') ?? false;
 
   const links = [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Modules GADIMAT' },
@@ -102,9 +98,6 @@ export function AppLayout() {
           ? [{ to: '/impayes/admin', icon: Settings, label: 'Paramأ¨tres' }]
           : []),
       ]),
-      ...(hasConsumptions
-        ? [{ to: '/impayes/consommations', icon: Droplets, label: 'Consommations' }]
-        : []),
     ];
 
   return (
