@@ -2,6 +2,48 @@ import nodemailer from 'nodemailer';
 import config from '../config/env.js';
 
 let transporter;
+const EMAIL_MODES = new Set(['disabled', 'test', 'production']);
+
+function configurationError(message) {
+  const error = new Error(message);
+  error.code = 'EMAIL_CONFIG_INVALID';
+  return error;
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+export function resolveEmailPolicy(emailConfig = config.email) {
+  const mode = String(emailConfig?.mode || 'disabled').trim().toLowerCase();
+  if (!EMAIL_MODES.has(mode)) {
+    throw configurationError('EMAIL_MODE doit être disabled, test ou production.');
+  }
+  if (mode === 'disabled') return { mode, enabled: false };
+  if (mode === 'test') {
+    const testTo = String(emailConfig?.testTo || '').trim();
+    if (!isEmail(testTo)) {
+      throw configurationError('EMAIL_TEST_TO est obligatoire et doit être une adresse valide en mode test.');
+    }
+    return { mode, enabled: true, testTo };
+  }
+  return { mode, enabled: true };
+}
+
+export function applyEmailPolicy(message, policy, envelopeFrom) {
+  if (policy.mode !== 'test') return { ...message };
+  const protectedMessage = {
+    ...message,
+    to: policy.testTo,
+    subject: String(message.subject || '').startsWith('[PREPROD]')
+      ? message.subject
+      : `[PREPROD] ${message.subject || ''}`.trim(),
+    envelope: { from: envelopeFrom, to: [policy.testTo] },
+  };
+  delete protectedMessage.cc;
+  delete protectedMessage.bcc;
+  return protectedMessage;
+}
 
 function escapeHtml(value = '') {
   return String(value)
@@ -13,8 +55,13 @@ function escapeHtml(value = '') {
 }
 
 function getTransporter() {
+  const policy = resolveEmailPolicy();
+  if (!policy.enabled) return null;
   if (!config.smtp.host || !config.smtp.user || !config.smtp.pass || !config.smtp.fromEmail) {
-    return null;
+    throw configurationError('Configuration SMTP incomplète pour le mode e-mail actif.');
+  }
+  if (!Number.isInteger(config.smtp.port) || config.smtp.port <= 0) {
+    throw configurationError('SMTP_PORT doit être un port valide.');
   }
 
   if (!transporter) {
@@ -22,28 +69,34 @@ function getTransporter() {
       host: config.smtp.host,
       port: config.smtp.port,
       secure: config.smtp.secure,
+      requireTLS: !config.smtp.secure,
       auth: {
         user: config.smtp.user,
         pass: config.smtp.pass,
       },
+      tls: { rejectUnauthorized: true },
     });
   }
 
   return transporter;
 }
 
-export async function sendCommercialActionNotification({ commercial, dossier, action, auteurNom }) {
+async function dispatchEmail(message, { verify = false } = {}) {
+  const policy = resolveEmailPolicy();
+  if (!policy.enabled) return { sent: false, reason: 'email_disabled' };
   const smtp = getTransporter();
-  if (!smtp) {
-    console.warn('Notification email ignorée : configuration SMTP incomplète');
-    return { sent: false, reason: 'smtp_not_configured' };
-  }
+  const protectedMessage = applyEmailPolicy(message, policy, config.smtp.fromEmail);
+  if (verify) await smtp.verify();
+  await smtp.sendMail(protectedMessage);
+  return { sent: true, to: protectedMessage.to, mode: policy.mode };
+}
 
+export async function sendCommercialActionNotification({ commercial, dossier, action, auteurNom }) {
   const dossierUrl = `${config.appUrl.replace(/\/$/, '')}/impayes/dossiers/${dossier.id}`;
   const subject = `[PROGAD] Nouveau commentaire - ${dossier.nom_tire || dossier.numero_valeur}`;
   const safeContent = escapeHtml(action.contenu).replaceAll('\n', '<br>');
 
-  await smtp.sendMail({
+  return dispatchEmail({
     from: `"${config.smtp.fromName.replaceAll('"', '')}" <${config.smtp.fromEmail}>`,
     to: commercial.email,
     subject,
@@ -78,20 +131,10 @@ export async function sendCommercialActionNotification({ commercial, dossier, ac
         </div>
       </div>`,
   });
-
-  return { sent: true };
 }
 
 export async function sendSmtpTestEmail({ to, nom }) {
-  const smtp = getTransporter();
-  if (!smtp) {
-    const error = new Error('Configuration SMTP incomplète');
-    error.code = 'SMTP_NOT_CONFIGURED';
-    throw error;
-  }
-
-  await smtp.verify();
-  await smtp.sendMail({
+  return dispatchEmail({
     from: `"${config.smtp.fromName.replaceAll('"', '')}" <${config.smtp.fromEmail}>`,
     to,
     subject: '[PROGAD] Test de configuration SMTP',
@@ -107,24 +150,15 @@ export async function sendSmtpTestEmail({ to, nom }) {
           <p style="margin-top:24px;color:#64748b;font-size:12px">Cet e-mail est un test automatique.</p>
         </div>
       </div>`,
-  });
-
-  return { sent: true, to };
+  }, { verify: true });
 }
 
 export async function sendActionDeadlineReminder({ user, dossier, action }) {
-  const smtp = getTransporter();
-  if (!smtp) {
-    const error = new Error('Configuration SMTP incomplète');
-    error.code = 'SMTP_NOT_CONFIGURED';
-    throw error;
-  }
-
   const dossierUrl = `${config.appUrl.replace(/\/$/, '')}/impayes/dossiers/erp-${dossier.erp_voucher_id}`;
   const deadline = new Date(`${action.date_rappel}T12:00:00Z`).toLocaleDateString('fr-FR');
   const safeContent = escapeHtml(action.contenu).replaceAll('\n', '<br>');
 
-  await smtp.sendMail({
+  return dispatchEmail({
     from: `"${config.smtp.fromName.replaceAll('"', '')}" <${config.smtp.fromEmail}>`,
     to: user.email,
     subject: `[PROGAD] Date limite dépassée - ${dossier.nom_tire || dossier.numero_valeur}`,
@@ -159,6 +193,4 @@ export async function sendActionDeadlineReminder({ user, dossier, action }) {
         </div>
       </div>`,
   });
-
-  return { sent: true, to: user.email };
 }

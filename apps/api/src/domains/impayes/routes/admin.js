@@ -29,7 +29,7 @@ router.post('/smtp/test', requireRole('admin'), async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Erreur test SMTP:', err.message);
-    res.status(503).json({ error: 'Échec du test SMTP. Vérifiez les variables Vercel et le mot de passe.' });
+    res.status(503).json({ error: 'Échec du test SMTP. Vérifiez EMAIL_MODE et la configuration SMTP.' });
   }
 });
 

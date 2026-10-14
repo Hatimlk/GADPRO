@@ -36,7 +36,7 @@ router.get('/action-reminders', async (req, res) => {
   `);
 
   if (claimed.rows.length === 0) {
-    return res.json({ success: true, processed: 0, sent: 0, failed: 0 });
+    return res.json({ success: true, processed: 0, sent: 0, skipped: 0, failed: 0 });
   }
 
   const ids = claimed.rows.map((row) => row.id);
@@ -52,13 +52,19 @@ router.get('/action-reminders', async (req, res) => {
 
   let sent = 0;
   let failed = 0;
+  let skipped = 0;
   for (const reminder of reminders.rows) {
     try {
-      await sendActionDeadlineReminder({
+      const delivery = await sendActionDeadlineReminder({
         user: { nom: reminder.auteur_nom, email: reminder.auteur_email },
         dossier: reminder,
         action: reminder,
       });
+      if (!delivery.sent) {
+        await query(`UPDATE erp_actions SET date_rappel_email_en_cours = NULL WHERE id = $1`, [reminder.id]);
+        skipped += 1;
+        continue;
+      }
       await query(
         `UPDATE erp_actions
          SET date_rappel_email_envoye = NOW(), date_rappel_email_en_cours = NULL
@@ -73,7 +79,7 @@ router.get('/action-reminders', async (req, res) => {
     }
   }
 
-  res.json({ success: failed === 0, processed: reminders.rows.length, sent, failed });
+  res.json({ success: failed === 0, processed: reminders.rows.length, sent, skipped, failed });
 });
 
 export default router;

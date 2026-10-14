@@ -22,6 +22,10 @@ export default {
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
   dormantDaysThreshold: 7,
   appUrl: process.env.PUBLIC_URL || process.env.APP_URL || 'http://localhost:3000',
+  email: {
+    mode: process.env.EMAIL_MODE || 'disabled',
+    testTo: process.env.EMAIL_TEST_TO || '',
+  },
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
@@ -29,6 +33,6 @@ export default {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
     fromName: process.env.SMTP_FROM_NAME || 'PROGAD-Suivi Impayé',
-    fromEmail: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || '',
+    fromEmail: process.env.SMTP_FROM_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER || '',
   },
 };
