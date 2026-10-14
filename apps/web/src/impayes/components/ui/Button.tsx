@@ -13,11 +13,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-brand-300',
-  secondary: 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 disabled:opacity-50',
-  outline: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:opacity-50',
-  ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 disabled:opacity-50',
-  danger: 'bg-white text-danger-700 border border-danger-100 hover:bg-danger-50 disabled:opacity-50',
+  primary: 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-brand-100 disabled:text-brand-700',
+  secondary: 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-700',
+  outline: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-600',
+  ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 disabled:text-gray-600',
+  danger: 'bg-white text-danger-700 border border-danger-100 hover:bg-danger-50 disabled:bg-danger-50 disabled:text-danger-700',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -31,6 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
         className={cn(
           'inline-flex items-center justify-center rounded-lg font-medium transition-colors disabled:cursor-not-allowed',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1',
@@ -40,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading && <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin" />}
         {children}
       </button>
     );
