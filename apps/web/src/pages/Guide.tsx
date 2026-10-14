@@ -108,7 +108,7 @@ export function Guide() {
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight mb-4">Guide d'utilisation</h1>
             <p className="text-blue-100 text-lg font-medium leading-relaxed mb-6">
-              Bienvenue sur la documentation de Gadimat Chèques. Découvrez comment maîtriser l'ensemble des modules pour gérer efficacement vos chèques et effets.
+              Bienvenue sur la documentation PROGAD. Découvrez comment maîtriser le module Chèques et effets pour gérer efficacement vos opérations.
             </p>
             <button 
               onClick={handleLaunchInteractiveTour}

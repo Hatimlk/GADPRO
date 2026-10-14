@@ -81,7 +81,7 @@ export function AppLayout() {
   const isCommercial = user?.role === 'commercial';
 
   const links = [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Modules GADIMAT' },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Cockpit PROGAD' },
       ...(isCommercial
     ? [
         { to: '/impayes/mes-dossiers', icon: User, label: 'Mes Dossiers' },

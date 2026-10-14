@@ -125,7 +125,7 @@ export function AppTour() {
   const steps: CustomStep[] = [
     {
       target: "body",
-      title: "Bienvenue sur Gadimat !",
+      title: "Bienvenue sur PROGAD !",
       content: "Découvrons ensemble comment gérer efficacement vos chèques et effets à travers cette plateforme moderne.",
       placement: "center",
       skipBeacon: true,

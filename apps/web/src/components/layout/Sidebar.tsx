@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/AppContext";
+import { ProgadBrand } from "@/components/ProgadBrand";
 
 const NAV_GROUPS = [
   {
@@ -56,7 +57,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
   return (
     <div className={cn("w-[240px] bg-slate-900 h-[100dvh] flex flex-col text-slate-300", className)}>
       <div className="p-6 flex items-center justify-center">
-        <img src="/Logo Gadimat.png" alt="Gadimat Chأ¨ques" className="h-[40px] w-auto object-contain" />
+        <ProgadBrand tone="dark" className="w-[176px]" />
       </div>
 
       <nav className="flex-1 py-4 overflow-y-auto hide-scrollbar">
@@ -105,7 +106,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
         <div className="border-t border-slate-700 mx-4 my-2" />
 
         <div className="mx-4 mb-3 grid gap-2">
-          <Link to="/dashboard" onClick={onNavigate} className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800">Accueil GADIMAT</Link>
+          <Link to="/dashboard" onClick={onNavigate} className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800">Cockpit PROGAD</Link>
           {currentUser?.accesses?.some((access) => access.module === 'impayes') && (
             <Link to="/impayes" onClick={onNavigate} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-500">Ouvrir le suivi des impayés</Link>
           )}
