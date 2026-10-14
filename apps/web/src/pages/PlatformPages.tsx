@@ -64,10 +64,8 @@ export function ModuleDashboard() {
   return <main className="min-h-screen bg-[#f3f6fb] text-slate-950">
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-5">
+        <div className="flex items-center">
           <ProgadBrand className="w-40 sm:w-44" />
-          <span className="hidden h-7 w-px bg-slate-200 md:block" />
-          <div className="hidden md:block"><p className="text-xs font-bold text-slate-800">Cockpit ERP</p><p className="text-[10px] text-slate-400">GADIMAT S.A.</p></div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden items-center gap-2.5 sm:flex"><span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-xs font-black text-blue-700">{initials}</span><div className="max-w-40"><p className="truncate text-xs font-bold text-slate-800">{currentUser?.name}</p><p className="truncate text-[10px] text-slate-400">{profileLabel}</p></div></div>
@@ -93,13 +91,7 @@ export function ModuleDashboard() {
           <span className="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><CheckCircle2 className="h-4 w-4" /> Session active</span>
         </section>
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Synthèse de votre espace">
-          <SummaryCard icon={Grid2X2} label="Applications" value={String(allowed.length)} detail="Modules autorisés" tone="blue" />
-          <SummaryCard icon={UserCog} label="Profil" value={currentUser?.platformAdmin ? 'Admin' : 'Standard'} detail="Droits personnalisés" tone="violet" />
-          <SummaryCard icon={KeyRound} label="Accès" value="Contrôlé" detail="Session centralisée" tone="emerald" />
-        </section>
-
-        <div className="mt-6 grid gap-6 2xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="mt-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="modules-title">
             <div className="flex items-center justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">Applications métier</p><h2 id="modules-title" className="mt-1 text-xl font-black">Vos modules</h2></div><span className="hidden text-xs text-slate-400 sm:block">Accès selon votre profil</span></div>
             {allowed.length ? <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{allowed.map(([code, item]) => <Link key={code} to={item.href} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50 p-5 transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-[0_16px_35px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
@@ -111,26 +103,11 @@ export function ModuleDashboard() {
             </Link>)}</div> : <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
           </section>
 
-          <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Mon environnement</p>
-            <div className="mt-4 flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-xl bg-slate-950 text-sm font-black text-white">{initials}</span><div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{currentUser?.name}</p><p className="truncate text-xs text-slate-500">{currentUser?.email}</p></div></div>
-            <div className="mt-5 space-y-3 border-t border-slate-100 pt-5"><EnvironmentRow label="Type de profil" value={profileLabel} /><EnvironmentRow label="Applications" value={`${allowed.length} autorisée${allowed.length > 1 ? 's' : ''}`} /><EnvironmentRow label="Organisation" value="GADIMAT S.A." /></div>
-            <div className="mt-5 rounded-xl bg-slate-950 p-4 text-white"><ShieldCheck className="h-5 w-5 text-blue-400" /><p className="mt-3 text-xs font-bold">Accès centralisé</p><p className="mt-1 text-[11px] leading-5 text-slate-400">Une seule session pour tous vos modules autorisés.</p></div>
-          </aside>
         </div>
         <footer className="mt-6 flex flex-col gap-1 border-t border-slate-200 py-5 text-[11px] text-slate-400 sm:flex-row sm:justify-between"><span>PROGAD · ERP interne de GADIMAT</span><span>Les accès sont contrôlés par rôle et par module</span></footer>
       </div>
     </div>
   </main>;
-}
-
-function SummaryCard({ icon: Icon, label, value, detail, tone }: { icon: typeof Grid2X2; label: string; value: string; detail: string; tone: 'blue' | 'violet' | 'emerald' }) {
-  const tones = { blue: 'bg-blue-50 text-blue-700', violet: 'bg-violet-50 text-violet-700', emerald: 'bg-emerald-50 text-emerald-700' };
-  return <article className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${tones[tone]}`}><Icon className="h-5 w-5" /></span><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-0.5 truncate text-lg font-black text-slate-900">{value}</p><p className="text-[11px] text-slate-500">{detail}</p></div></article>;
-}
-
-function EnvironmentRow({ label, value }: { label: string; value: string }) {
-  return <div className="flex items-start justify-between gap-3"><span className="text-xs text-slate-500">{label}</span><span className="text-right text-xs font-bold text-slate-800">{value}</span></div>;
 }
 
 export function AdministrationPage() {
