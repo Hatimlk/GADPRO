@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Banknote, CheckCircle2, ChevronLeft, FileWarning, Grid2X2, KeyRound, LayoutDashboard, LogOut, Search, Settings, ShieldCheck, ShieldX, Plus, Pencil, Power, RefreshCw, Save, UserCheck, UserCog, Users, UserX, X } from 'lucide-react';
+import { Banknote, CheckCircle2, ChevronLeft, FileWarning, Grid2X2, KeyRound, LogOut, Search, Settings, ShieldCheck, ShieldX, Plus, Pencil, Power, RefreshCw, Save, UserCheck, UserCog, Users, UserX, X } from 'lucide-react';
 import { ProgadBrand } from '../components/ProgadBrand';
 import { useApp } from '../lib/AppContext';
 import { api } from '../lib/api';
@@ -15,16 +15,16 @@ type UserDraft = { id?: string; name: string; email: string; password: string; p
 
 const modules = {
   cheques: {
-    label: 'Chèques et effets', description: 'Comptes, échéances, partenaires et impressions', href: '/cheques', icon: Banknote,
-    eyebrow: 'Finance', iconStyle: 'bg-blue-600 text-white shadow-blue-600/25', accentStyle: 'bg-blue-600', softStyle: 'bg-blue-50 text-blue-700',
+    label: 'Chèques et effets', href: '/cheques', icon: Banknote,
+    iconStyle: 'bg-blue-50 text-blue-600 ring-blue-100', hoverStyle: 'hover:border-blue-200 hover:bg-blue-50/30',
   },
   impayes: {
-    label: 'Suivi des impayés', description: 'Dossiers, actions, alertes et synchronisation ERP', href: '/impayes', icon: FileWarning,
-    eyebrow: 'Recouvrement', iconStyle: 'bg-amber-500 text-white shadow-amber-500/25', accentStyle: 'bg-amber-500', softStyle: 'bg-amber-50 text-amber-700',
+    label: 'Suivi des impayés', href: '/impayes', icon: FileWarning,
+    iconStyle: 'bg-amber-50 text-amber-600 ring-amber-100', hoverStyle: 'hover:border-amber-200 hover:bg-amber-50/30',
   },
   administration: {
-    label: 'Administration', description: 'Identités, accès et rôles par module', href: '/administration', icon: Settings,
-    eyebrow: 'Configuration', iconStyle: 'bg-violet-600 text-white shadow-violet-600/25', accentStyle: 'bg-violet-600', softStyle: 'bg-violet-50 text-violet-700',
+    label: 'Administration', href: '/administration', icon: Settings,
+    iconStyle: 'bg-violet-50 text-violet-600 ring-violet-100', hoverStyle: 'hover:border-violet-200 hover:bg-violet-50/30',
   },
 };
 
@@ -61,53 +61,44 @@ export function ModuleDashboard() {
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const profileLabel = currentUser?.platformAdmin ? 'Administrateur plateforme' : 'Collaborateur';
 
-  return <main className="min-h-screen bg-[#f3f6fb] text-slate-950">
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center">
-          <ProgadBrand className="w-40 sm:w-44" />
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden items-center gap-2.5 sm:flex"><span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-xs font-black text-blue-700">{initials}</span><div className="max-w-40"><p className="truncate text-xs font-bold text-slate-800">{currentUser?.name}</p><p className="truncate text-[10px] text-slate-400">{profileLabel}</p></div></div>
-          <button aria-label="Se déconnecter" onClick={() => void logout()} className="ml-1 grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><LogOut className="h-4 w-4" /></button>
+  return <main className="min-h-screen bg-[#f5f7fb] text-[#111827]">
+    <header className="sticky top-0 z-30 border-b border-[#e5eaf2] bg-white/95 backdrop-blur-xl">
+      <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
+        <ProgadBrand className="w-40 sm:w-44" />
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#eef4ff] text-xs font-black text-[#2455a4] ring-1 ring-inset ring-blue-100">{initials}</span>
+            <div className="hidden max-w-48 sm:block"><p className="truncate text-sm font-bold text-slate-800">{currentUser?.name}</p><p className="truncate text-[11px] text-slate-500">{profileLabel}</p></div>
+          </div>
+          <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
+          <button aria-label="Se déconnecter" title="Se déconnecter" onClick={() => void logout()} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition duration-200 hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"><LogOut className="h-[18px] w-[18px]" /></button>
         </div>
       </div>
     </header>
 
-    <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-5 sm:px-6 sm:py-7 lg:px-8 xl:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="hidden xl:block">
-        <div className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="px-3 pb-2 pt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Navigation</p>
-          <div className="flex items-center gap-3 rounded-xl bg-slate-950 px-3 py-3 text-white"><LayoutDashboard className="h-4 w-4" /><span className="text-sm font-semibold">Vue d’ensemble</span></div>
-          <p className="mt-5 px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Applications</p>
-          <nav className="space-y-1">{allowed.map(([code, item]) => <Link key={code} to={item.href} className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"><span className={`grid h-8 w-8 place-items-center rounded-lg ${item.softStyle}`}><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1 truncate">{item.label}</span><ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" /></Link>)}</nav>
-          <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-3"><div className="flex items-center gap-2 text-xs font-bold text-blue-800"><ShieldCheck className="h-4 w-4" /> Session sécurisée</div><p className="mt-1.5 text-[11px] leading-4 text-blue-700/70">Vos menus reflètent uniquement les droits attribués.</p></div>
-        </div>
-      </aside>
+    <div className="mx-auto w-full max-w-7xl px-5 pb-16 pt-9 sm:px-8 sm:pt-12 lg:px-10">
+      <section aria-labelledby="dashboard-title">
+        <p className="text-xs font-semibold capitalize text-[#2455a4]">{today}</p>
+        <h1 id="dashboard-title" className="mt-2 text-[2rem] font-black tracking-[-0.035em] text-slate-950 sm:text-4xl">Bonjour {firstName} <span aria-hidden="true">👋</span></h1>
+        <p className="mt-2 text-sm text-slate-500 sm:text-base">Accédez à vos applications professionnelles.</p>
+      </section>
 
-      <div className="min-w-0">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-bold capitalize text-blue-600">{today}</p><h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Bonjour {firstName}</h1><p className="mt-1 text-sm text-slate-500">Voici votre espace de travail PROGAD.</p></div>
-          <span className="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><CheckCircle2 className="h-4 w-4" /> Session active</span>
-        </section>
-
-        <div className="mt-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="modules-title">
-            <div className="flex items-center justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">Applications métier</p><h2 id="modules-title" className="mt-1 text-xl font-black">Vos modules</h2></div><span className="hidden text-xs text-slate-400 sm:block">Accès selon votre profil</span></div>
-            {allowed.length ? <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{allowed.map(([code, item]) => <Link key={code} to={item.href} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/50 p-5 transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-[0_16px_35px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
-              <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${item.accentStyle}`} />
-              <div className="flex items-start justify-between gap-4"><span className={`grid h-11 w-11 place-items-center rounded-xl shadow-md ${item.iconStyle}`}><item.icon className="h-5 w-5" /></span><span className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 transition group-hover:border-blue-600 group-hover:bg-blue-600 group-hover:text-white"><ArrowRight className="h-4 w-4" /></span></div>
-              <span className={`mt-5 inline-flex rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider ${item.softStyle}`}>{item.eyebrow}</span>
-              <h3 className="mt-2 text-lg font-black text-slate-950">{item.label}</h3><p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">{item.description}</p>
-              <div className="mt-5 flex items-center gap-2 border-t border-slate-200/80 pt-4 text-xs font-bold text-slate-800">Ouvrir l’application <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></div>
-            </Link>)}</div> : <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
-          </section>
-
-        </div>
-        <footer className="mt-6 flex flex-col gap-1 border-t border-slate-200 py-5 text-[11px] text-slate-400 sm:flex-row sm:justify-between"><span>PROGAD · ERP interne de GADIMAT</span><span>Les accès sont contrôlés par rôle et par module</span></footer>
-      </div>
+      <section className="mt-10 sm:mt-12" aria-labelledby="applications-title">
+        <h2 id="applications-title" className="text-sm font-bold tracking-tight text-slate-800">Applications</h2>
+        {allowed.length ? <div className="mt-4 grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+          {allowed.map(([code, item]) => <ApplicationTile key={code} item={item} />)}
+        </div> : <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
+      </section>
     </div>
   </main>;
+}
+
+function ApplicationTile({ item }: { item: (typeof modules)[keyof typeof modules] }) {
+  const Icon = item.icon;
+  return <Link to={item.href} aria-label={`Ouvrir ${item.label}`} className={`group flex min-h-40 flex-col items-center justify-center rounded-2xl border border-[#e5eaf2] bg-white px-4 py-6 text-center shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2455a4] focus-visible:ring-offset-2 ${item.hoverStyle}`}>
+    <span className={`grid h-14 w-14 place-items-center rounded-2xl ring-1 ring-inset transition duration-200 group-hover:scale-105 ${item.iconStyle}`}><Icon className="h-6 w-6" strokeWidth={1.9} /></span>
+    <h3 className="mt-5 text-sm font-bold leading-snug text-slate-900 sm:text-[15px]">{item.label}</h3>
+  </Link>;
 }
 
 export function AdministrationPage() {
