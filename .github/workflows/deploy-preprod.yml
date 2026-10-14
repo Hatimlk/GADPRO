@@ -1,0 +1,66 @@
+name: Deploy preproduction
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gadpro-preproduction
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: preproduction
+      url: https://preprod.gadimat.pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Prepare release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/release"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/release"
+          cp -a apps/web/dist "$RUNNER_TEMP/release/apps/web/dist"
+          tar -czf "$RUNNER_TEMP/release.tar.gz" -C "$RUNNER_TEMP/release" .
+      - name: Deploy through restricted SSH command
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.PREPROD_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.PREPROD_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PREPROD_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PREPROD_SSH_KNOWN_HOSTS }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing SSH host}"
+          : "${DEPLOY_USER:?Missing SSH user}"
+          : "${DEPLOY_KEY:?Missing SSH key}"
+          : "${KNOWN_HOSTS:?Missing pinned host key}"
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/preprod_key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          trap 'rm -f "$HOME/.ssh/preprod_key"' EXIT
+          ssh -T -i "$HOME/.ssh/preprod_key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" "deploy ${RELEASE_SHA}" \
+            < "$RUNNER_TEMP/release.tar.gz"
+      - name: Check HTTPS
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 3 https://preprod.gadimat.pro/api/health
