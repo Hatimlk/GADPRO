@@ -34,15 +34,15 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
           <img src="/Asset%206@4x.png" alt="PROGAD by GADIMAT" className="h-auto w-64 max-w-[78vw] object-contain" />
-          <p className="text-xs font-medium text-slate-500">Suivi Impayأ©</p>
+          <p className="text-xs font-medium text-slate-500">Suivi Impayé</p>
         </div>
 
         <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.3)] sm:p-9">
           <header className="mb-8">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Espace sأ©curisأ©</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Espace sécurisé</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Bienvenue</h1>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Connectez-vous pour accأ©der أ  votre espace de gestion.
+              Connectez-vous pour accéder à votre espace de gestion.
             </p>
           </header>
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                   className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50/70 py-2 pl-10 pr-12 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500"
                   required
@@ -108,11 +108,11 @@ export default function LoginPage() {
 
           <div className="mt-6 flex items-center justify-center gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400">
             <Lock className="h-3.5 w-3.5" />
-            Connexion rأ©servأ©e aux utilisateurs autorisأ©s
+            Connexion réservée aux utilisateurs autorisés
           </div>
         </section>
 
-        <p className="mt-5 text-center text-xs text-slate-400">آ© {new Date().getFullYear()} GADIMAT S.A.</p>
+        <p className="mt-5 text-center text-xs text-slate-400">© {new Date().getFullYear()} GADIMAT S.A.</p>
       </div>
     </main>
   );

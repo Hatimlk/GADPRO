@@ -132,14 +132,14 @@ export default function DerogationPage() {
         title={
           <span className="flex items-center gap-2">
             <Scale className="w-5 h-5 text-brand-600" />
-            Dأ©rogation des dossiers
+            Dérogation des dossiers
           </span>
         }
-        subtitle="Dأ©cision finale sur les dossiers â€” la charge reste chez le commercial"
+        subtitle="Décision finale sur les dossiers — la charge reste chez le commercial"
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <DecisionSummary icon={WalletCards} label="Dossiers أ  examiner" value={String(total)} tone="brand" />
+        <DecisionSummary icon={WalletCards} label="Dossiers à examiner" value={String(total)} tone="brand" />
         <DecisionSummary icon={CircleDollarSign} label="Montant sur cette page" value={formatMontant(visibleAmount)} tone="success" />
         <DecisionSummary icon={Filter} label="Filtres actifs" value={String(activeFilterCount)} tone="warning" />
       </div>
@@ -200,15 +200,15 @@ export default function DerogationPage() {
       <Card padding="none" className="overflow-hidden border-gray-200/80 shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50/70 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Dossiers soumis أ  dأ©cision</h2>
+            <h2 className="text-sm font-semibold text-gray-950">Dossiers soumis à décision</h2>
             <p className="text-xs text-gray-500">{total} dossier(s)</p>
           </div>
-          {hasFilters && <button onClick={clearFilters} className="text-xs font-medium text-brand-600">Rأ©initialiser</button>}
+          {hasFilters && <button onClick={clearFilters} className="text-xs font-medium text-brand-600">Réinitialiser</button>}
         </div>
         {loading ? (
           <PageSpinner label="Chargement des dossiers..." />
         ) : dossiers.length === 0 ? (
-          <EmptyState title="Aucun dossier trouvأ©" />
+          <EmptyState title="Aucun dossier trouvé" />
         ) : (
           <Table>
             <Thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
@@ -271,7 +271,7 @@ export default function DerogationPage() {
                           openDecision(d);
                         }}
                         className="rounded-lg border border-transparent p-1.5 text-brand-600 transition hover:border-brand-100 hover:bg-white hover:shadow-xs"
-                        title="Prendre une dأ©cision (dأ©rogation)"
+                        title="Prendre une décision (dérogation)"
                       >
                         <Gavel className="w-4 h-4" />
                       </button>
@@ -289,7 +289,7 @@ export default function DerogationPage() {
       <Modal
         open={!!decisionDossier}
         onClose={() => setDecisionDossier(null)}
-        title="Dأ©cision dأ©rogation"
+        title="Décision dérogation"
       >
         {decisionDossier && (
           <div className="space-y-4">
@@ -300,7 +300,7 @@ export default function DerogationPage() {
                   <p className="font-medium text-gray-900">{decisionDossier.numero_valeur}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Tirأ©:</span>
+                  <span className="text-gray-500">Tiré:</span>
                   <p className="font-medium text-gray-900">{decisionDossier.nom_tire}</p>
                 </div>
                 <div>
@@ -323,7 +323,7 @@ export default function DerogationPage() {
             </div>
 
             <Select
-              label="Nouveau statut (dأ©cision finale)"
+              label="Nouveau statut (décision finale)"
               value={newStatut}
               onChange={(e) => setNewStatut(e.target.value)}
             >
@@ -332,15 +332,15 @@ export default function DerogationPage() {
 
             <div>
               <Textarea
-                label="Motif de la dأ©rogation *"
+                label="Motif de la dérogation *"
                 value={decisionNote}
                 onChange={(e) => setDecisionNote(e.target.value)}
                 rows={4}
-                placeholder="Dأ©crivez la raison de cette dأ©cision finale..."
+                placeholder="Décrivez la raison de cette décision finale..."
                 required
               />
               <p className="text-xs text-gray-400 mt-1">
-                Cette action sera enregistrأ©e comme action de type "dأ©rogation" sur le dossier
+                Cette action sera enregistrée comme action de type "dérogation" sur le dossier
               </p>
             </div>
 
@@ -350,7 +350,7 @@ export default function DerogationPage() {
               </Button>
               <Button onClick={handleDecision} loading={decisionLoading} disabled={!decisionNote.trim()}>
                 <CheckCircle2 className="w-4 h-4" />
-                {decisionLoading ? 'Enregistrement...' : 'Valider la dأ©cision'}
+                {decisionLoading ? 'Enregistrement...' : 'Valider la décision'}
               </Button>
             </div>
           </div>

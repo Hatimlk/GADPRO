@@ -147,7 +147,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteAuditLog = async (id: string) => {
-    if (!confirm("Supprimer dأ©finitivement cette entrأ©e du journal d'audit ?")) return;
+    if (!confirm("Supprimer définitivement cette entrée du journal d'audit ?")) return;
     try {
       await api.deleteAuditLog(id);
       if (auditLogs.length === 1 && auditPage > 1) {
@@ -156,7 +156,7 @@ export default function AdminPage() {
         await loadAuditLogs();
       }
     } catch (err: any) {
-      alert(err.message || "Erreur lors de la suppression de l'entrأ©e d'audit");
+      alert(err.message || "Erreur lors de la suppression de l'entrée d'audit");
     }
   };
 
@@ -164,9 +164,9 @@ export default function AdminPage() {
     try {
       setSmtpTesting(true);
       const result = await api.testSmtp();
-      alert(`E-mail de test envoyأ© أ  ${result.to}`);
+      alert(`E-mail de test envoyé à ${result.to}`);
     } catch (err: any) {
-      alert(err.message || 'أ‰chec du test SMTP');
+      alert(err.message || 'Échec du test SMTP');
     } finally {
       setSmtpTesting(false);
     }
@@ -229,13 +229,13 @@ export default function AdminPage() {
   };
 
   const handleResetPassword = async (u: User) => {
-    if (!confirm(`Gأ©nأ©rer un nouveau mot de passe pour ${u.email} ?\n\nSes sessions actives seront dأ©connectأ©es.`)) return;
+    if (!confirm(`Générer un nouveau mot de passe pour ${u.email} ?\n\nSes sessions actives seront déconnectées.`)) return;
     try {
       setResetSubmittingId(u.id);
       const { password } = await api.resetUserPassword(u.id);
       setResetPasswordResult({ email: u.email, password });
     } catch (err: any) {
-      alert(err.message || 'Erreur lors de la rأ©initialisation du mot de passe');
+      alert(err.message || 'Erreur lors de la réinitialisation du mot de passe');
     } finally {
       setResetSubmittingId(null);
     }
@@ -290,7 +290,7 @@ export default function AdminPage() {
       setPartenaireNom('');
       loadPartenaires();
     } catch (err: any) {
-      alert(err.message || 'Erreur lors de la crأ©ation');
+      alert(err.message || 'Erreur lors de la création');
     } finally {
       setPartenaireSubmitting(false);
     }
@@ -380,10 +380,10 @@ export default function AdminPage() {
         title={(
           <span className="flex items-center gap-2">
             <Settings className="h-6 w-6 text-brand-600" />
-            Paramأ¨tres
+            Paramètres
           </span>
         )}
-        subtitle="Gestion des utilisateurs, rأ©fأ©rentiels et journal d'audit"
+        subtitle="Gestion des utilisateurs, référentiels et journal d'audit"
         actions={(
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={handleTestSmtp} loading={smtpTesting}>
@@ -425,7 +425,7 @@ export default function AdminPage() {
           </div>
           <div>
             <h2 className="font-semibold text-gray-950">{currentTab.label}</h2>
-            <p className="text-xs text-gray-500">Gأ©rez et maintenez les donnأ©es de cette section.</p>
+            <p className="text-xs text-gray-500">Gérez et maintenez les données de cette section.</p>
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-xs ring-1 ring-gray-100">
@@ -475,7 +475,7 @@ export default function AdminPage() {
                         <button
                           onClick={() => handleToggleUser(u.id)}
                           className="p-1 rounded-lg transition hover:bg-gray-100"
-                          title={u.actif ? 'Dأ©sactiver' : 'Activer'}
+                          title={u.actif ? 'Désactiver' : 'Activer'}
                         >
                           {u.actif ? (
                             <ToggleRight className="w-5 h-5 text-success-600" />
@@ -496,7 +496,7 @@ export default function AdminPage() {
                             loading={resetSubmittingId === u.id}
                             onClick={() => handleResetPassword(u)}
                           >
-                            Rأ©initialiser
+                            Réinitialiser
                           </Button>
                         </div>
                       </Td>
@@ -578,7 +578,7 @@ export default function AdminPage() {
                       <button onClick={() => handleEditPartenaire(partenaire)} className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg" title="Modifier">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleTogglePartenaire(partenaire.id)} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg" title={partenaire.actif ? 'Dأ©sactiver' : 'Activer'}>
+                      <button onClick={() => handleTogglePartenaire(partenaire.id)} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg" title={partenaire.actif ? 'Désactiver' : 'Activer'}>
                         {partenaire.actif ? <ToggleRight className="w-5 h-5 text-emerald-600" /> : <ToggleLeft className="w-5 h-5" />}
                       </button>
                     </div>
@@ -603,7 +603,7 @@ export default function AdminPage() {
               <form onSubmit={handleCreateStatut} className="flex gap-3 items-end">
                 <div className="flex-1">
                   <Input
-                    label="Libellأ©"
+                    label="Libellé"
                     value={statutForm.libelle}
                     onChange={(e) => setStatutForm({ ...statutForm, libelle: e.target.value })}
                     required
@@ -640,7 +640,7 @@ export default function AdminPage() {
               <Table>
                 <Thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
                   <tr>
-                    <Th>Libellأ©</Th>
+                    <Th>Libellé</Th>
                     <Th align="center">Ordre</Th>
                     <Th align="center">Couleur</Th>
                     <Th align="center">Actif</Th>
@@ -684,7 +684,7 @@ export default function AdminPage() {
               <Input value={relationForm.code} onChange={(e) => setRelationForm({ ...relationForm, code: e.target.value })} placeholder="Code" required />
             </div>
             <div className="flex-1">
-              <Input value={relationForm.libelle} onChange={(e) => setRelationForm({ ...relationForm, libelle: e.target.value })} placeholder="Libellأ©" required />
+              <Input value={relationForm.libelle} onChange={(e) => setRelationForm({ ...relationForm, libelle: e.target.value })} placeholder="Libellé" required />
             </div>
             <Button type="submit" loading={relationSubmitting}>
               <Plus className="w-4 h-4" />
@@ -701,7 +701,7 @@ export default function AdminPage() {
                 <Thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
                   <tr>
                     <Th>Code</Th>
-                    <Th>Libellأ©</Th>
+                    <Th>Libellé</Th>
                     <Th align="center">Actif</Th>
                     <Th align="center">Actions</Th>
                   </tr>
@@ -749,14 +749,14 @@ export default function AdminPage() {
               variant="outline"
               onClick={() => { setAuditDateDebut(''); setAuditDateFin(''); setAuditPage(1); }}
             >
-              Rأ©initialiser
+              Réinitialiser
             </Button>
           </div>
           <Card padding="none" className="overflow-hidden border-gray-200/80 shadow-sm">
             {auditLoading ? (
               <PageSpinner label="Chargement..." />
             ) : auditLogs.length === 0 ? (
-              <EmptyState icon={<FileText className="w-6 h-6" />} title="Aucune entrأ©e" />
+              <EmptyState icon={<FileText className="w-6 h-6" />} title="Aucune entrée" />
             ) : (
               <Table>
                 <Thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
@@ -764,7 +764,7 @@ export default function AdminPage() {
                     <Th>Date</Th>
                     <Th>Utilisateur</Th>
                     <Th>Action</Th>
-                    <Th>Dأ©tails</Th>
+                    <Th>Détails</Th>
                     <Th align="center">Supprimer</Th>
                   </tr>
                 </Thead>
@@ -782,7 +782,7 @@ export default function AdminPage() {
                           type="button"
                           onClick={() => handleDeleteAuditLog(log.id)}
                           className="rounded-md p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
-                          title="Supprimer cette entrأ©e"
+                          title="Supprimer cette entrée"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -802,7 +802,7 @@ export default function AdminPage() {
                     onClick={() => setAuditPage(Math.max(1, auditPage - 1))}
                     disabled={auditPage <= 1}
                   >
-                    Prأ©cأ©dent
+                    Précédent
                   </Button>
                   <Button
                     variant="outline"
@@ -863,7 +863,7 @@ export default function AdminPage() {
               Annuler
             </Button>
             <Button type="submit" loading={userSubmitting}>
-              {userSubmitting ? 'Enregistrement...' : editUser ? 'Mettre أ  jour' : 'Crأ©er'}
+              {userSubmitting ? 'Enregistrement...' : editUser ? 'Mettre à jour' : 'Créer'}
             </Button>
           </div>
         </form>
@@ -872,13 +872,13 @@ export default function AdminPage() {
       <Modal
         open={!!resetPasswordResult}
         onClose={() => setResetPasswordResult(null)}
-        title="Nouveau mot de passe gأ©nأ©rأ©"
+        title="Nouveau mot de passe généré"
       >
         {resetPasswordResult && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Communiquez ce mot de passe أ  <strong>{resetPasswordResult.email}</strong> vous-mأھme (en main propre, par
-              tأ©lأ©phone, etc.). Il ne sera plus affichأ© aprأ¨s fermeture de cette fenأھtre.
+              Communiquez ce mot de passe à <strong>{resetPasswordResult.email}</strong> vous-même (en main propre, par
+              téléphone, etc.). Il ne sera plus affiché après fermeture de cette fenêtre.
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-sm font-mono break-all">

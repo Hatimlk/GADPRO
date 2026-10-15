@@ -212,7 +212,7 @@ export default function DossiersPage() {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Dossiers Impayأ©s"
+        title="Dossiers Impayés"
         subtitle={`${total} dossier(s) au total`}
         actions={(
           <div className="flex flex-wrap items-center gap-2">
@@ -229,7 +229,7 @@ export default function DossiersPage() {
               name="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Rechercher par partenaire, numأ©ro, banque..."
+              placeholder="Rechercher par partenaire, numéro, banque..."
               icon={<Search className="w-4 h-4" />}
             />
           </div>
@@ -248,7 +248,7 @@ export default function DossiersPage() {
             title="Trier par date"
           >
             <ArrowUpDown className="w-4 h-4" />
-            <span className="hidden sm:inline">Date {sortOrder === 'DESC' ? 'â†“' : 'â†‘'}</span>
+            <span className="hidden sm:inline">Date {sortOrder === 'DESC' ? '↓' : '↑'}</span>
           </Button>
           {hasFilters && (
             <Button variant="danger" onClick={clearFilters}>
@@ -352,21 +352,21 @@ export default function DossiersPage() {
       <Card padding="none" className="overflow-hidden border-gray-200/80 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50/70 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Rأ©sultats</h2>
+            <h2 className="text-sm font-semibold text-gray-950">Résultats</h2>
             <p className="text-xs text-gray-500">
-              {total > 0 ? `${(page - 1) * 15 + 1}â€“${Math.min(page * 15, total)} sur ${total}` : 'Aucun dossier'}
+              {total > 0 ? `${(page - 1) * 15 + 1}–${Math.min(page * 15, total)} sur ${total}` : 'Aucun dossier'}
             </p>
           </div>
           {hasFilters && (
             <button onClick={clearFilters} className="text-xs font-medium text-brand-600 hover:text-brand-700">
-              Rأ©initialiser les filtres
+              Réinitialiser les filtres
             </button>
           )}
         </div>
         {loading ? (
           <PageSpinner label="Chargement des dossiers..." />
         ) : dossiers.length === 0 ? (
-          <EmptyState icon={<FolderOpen className="w-6 h-6" />} title="Aucun dossier trouvأ©" />
+          <EmptyState icon={<FolderOpen className="w-6 h-6" />} title="Aucun dossier trouvé" />
         ) : (
           <>
           <div className="divide-y divide-gray-100 md:hidden">
@@ -390,7 +390,7 @@ export default function DossiersPage() {
                     <div><span className="block text-gray-400">Montant</span><span className="font-mono font-bold text-gray-900">{formatMontant(d.montant)}</span></div>
                     <div><span className="block text-gray-400">Banque</span><span className="font-medium text-gray-700">{d.banque}</span></div>
                     <div><span className="block text-gray-400">Commercial</span><span className="font-medium text-gray-700">{d.commercial_nom || '-'}</span></div>
-                    <div><span className="block text-gray-400">Date / retard</span><span className={cn('font-semibold', days >= 30 ? 'text-red-600' : days >= 7 ? 'text-amber-600' : 'text-gray-700')}>{d.date_facture ? formatDate(d.date_facture) : '-'} آ· {days}j</span></div>
+                    <div><span className="block text-gray-400">Date / retard</span><span className={cn('font-semibold', days >= 30 ? 'text-red-600' : days >= 7 ? 'text-amber-600' : 'text-gray-700')}>{d.date_facture ? formatDate(d.date_facture) : '-'} · {days}j</span></div>
                   </div>
                 </button>
               );
@@ -507,7 +507,7 @@ export default function DossiersPage() {
               onChange={(e) => setCreateForm({ ...createForm, date_facture: e.target.value })}
             />
             <Input
-              label="Date d'أ©chأ©ance"
+              label="Date d'échéance"
               type="date"
               value={createForm.date_echeance}
               onChange={(e) => setCreateForm({ ...createForm, date_echeance: e.target.value })}
@@ -596,7 +596,7 @@ export default function DossiersPage() {
             <Button type="submit" loading={createLoading}>
               {createLoading
                 ? (editDossier ? 'Enregistrement...' : 'Creation...')
-                : (editDossier ? 'Enregistrer' : 'Crأ©er le dossier')}
+                : (editDossier ? 'Enregistrer' : 'Créer le dossier')}
             </Button>
           </div>
         </form>
@@ -604,8 +604,8 @@ export default function DossiersPage() {
       <Modal open={showImport} onClose={closeImport} title="Importer un fichier Excel">
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Sأ©lectionnez un fichier Excel (.xlsx, .xls) contenant les dossiers أ  importer.
-            Les colonnes acceptأ©es: Date, BQ, Mt, Val, N Val, Partenaire, Porteur, Relation, Com, Statut, etc.
+            Sélectionnez un fichier Excel (.xlsx, .xls) contenant les dossiers à importer.
+            Les colonnes acceptées: Date, BQ, Mt, Val, N Val, Partenaire, Porteur, Relation, Com, Statut, etc.
           </p>
           <input
             ref={fileInputRef}
@@ -622,14 +622,14 @@ export default function DossiersPage() {
               <p className="font-semibold mb-1">{importResult.message}</p>
               <div className="text-gray-600 space-y-1">
                 <p>Total lignes : {importResult.total}</p>
-                <p>Importأ©s : {importResult.imported}</p>
-                <p>Ignorأ©s (doublons/vides) : {importResult.skipped}</p>
+                <p>Importés : {importResult.imported}</p>
+                <p>Ignorés (doublons/vides) : {importResult.skipped}</p>
                 {importResult.errors > 0 && <p>Erreurs : {importResult.errors}</p>}
               </div>
               {importResult.details?.skipped?.length > 0 && (
                 <details className="mt-2">
                   <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                    Voir les lignes ignorأ©es
+                    Voir les lignes ignorées
                   </summary>
                   <div className="mt-1 max-h-40 overflow-y-auto text-xs text-gray-500">
                     {importResult.details.skipped.map((s: any, i: number) => (

@@ -2,8 +2,8 @@
 
 type RefreshResponse = { accessToken: string; refreshToken?: string };
 
-// Une seule rotation de session peut أھtre active dans l'onglet. Toutes les
-// requأھtes ayant reأ§u 401 attendent la mأھme promesse puis sont rejouأ©es.
+// Une seule rotation de session peut être active dans l'onglet. Toutes les
+// requêtes ayant reçu 401 attendent la même promesse puis sont rejouées.
 let refreshPromise: Promise<RefreshResponse> | null = null;
 
 function refreshSession(): Promise<RefreshResponse> {
@@ -17,7 +17,7 @@ function refreshSession(): Promise<RefreshResponse> {
       body: JSON.stringify({ refreshToken }),
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error('Session expirأ©e');
+        if (!response.ok) throw new Error('Session expirée');
         const data = await response.json() as RefreshResponse;
         return data;
       })

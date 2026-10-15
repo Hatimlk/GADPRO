@@ -28,8 +28,8 @@ const axisTick = { fontSize: 11, fill: CHART_INK.secondary };
 const valueAxisTick = { fontSize: 12, fill: CHART_INK.muted };
 
 const MONTH_NAMES = [
-  'Janvier', 'Fأ©vrier', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Aoأ»t', 'Septembre', 'Octobre', 'Novembre', 'Dأ©cembre'
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
 ];
 
 // Interactive Calendar Widget
@@ -100,13 +100,13 @@ function RelanceCalendar() {
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
           <CalendarIcon className="w-3.5 h-3.5 text-brand-600" />
-          أ‰chأ©ances & Relances
+          Échéances & Relances
         </span>
         <div className="flex items-center gap-1 bg-brand-50/80 px-2 py-1 rounded-xl border border-brand-100">
           <button
             onClick={prevMonth}
             className="p-0.5 hover:bg-brand-200/50 rounded-md transition text-brand-700 cursor-pointer"
-            title="Mois prأ©cأ©dent"
+            title="Mois précédent"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
@@ -191,7 +191,7 @@ function RelanceCalendar() {
             {selectedEvents.length === 0 ? (
               <div className="text-[11px] text-slate-400 flex items-center gap-1.5 py-1">
                 <Info className="w-3.5 h-3.5 text-slate-500" />
-                <span>Aucune relance programmأ©e pour ce jour.</span>
+                <span>Aucune relance programmée pour ce jour.</span>
               </div>
             ) : (
               selectedEvents.map((evt) => (
@@ -200,7 +200,7 @@ function RelanceCalendar() {
                     <span className="text-xs font-bold text-brand-300">{evt.nom_tire}</span>
                     <span className="text-[11px] font-mono font-bold text-emerald-400">{formatMontant(Number(evt.montant))}</span>
                   </div>
-                  <p className="text-[11px] text-slate-300 leading-tight">{evt.type_valeur} آ· {evt.commercial_nom || 'Non assignأ©'} آ· {evt.statut}</p>
+                  <p className="text-[11px] text-slate-300 leading-tight">{evt.type_valeur} · {evt.commercial_nom || 'Non assigné'} · {evt.statut}</p>
                   {evt.observations && <p className="text-[10px] text-slate-400 truncate">{evt.observations.split(' | Date facture :')[0]}</p>}
                 </button>
               ))
@@ -239,7 +239,7 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
 
   const commercials = (stats.parCommercial || [])
     .map((c) => c.commercial_nom)
-    .filter((nom): nom is string => Boolean(nom) && nom !== 'Non assignأ©');
+    .filter((nom): nom is string => Boolean(nom) && nom !== 'Non assigné');
 
   let activeData: any[] = [];
   if (periodMode === 'hebdo') {
@@ -259,7 +259,7 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
       : [];
   }
 
-  // Calcul du montant total filtrأ© pour le rأ©sumأ©
+  // Calcul du montant total filtré pour le résumé
   const totalFilteredPeriod = activeData.reduce((acc, pt) => {
     if (selectedCommercial === 'all') {
       return acc + (pt.total_montant || 0);
@@ -268,27 +268,29 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
   }, 0);
 
   return (
-    <Card className="lg:col-span-12 p-5 sm:p-6 space-y-4 shadow-xs border-gray-200">
+    <Card className="lg:col-span-12 space-y-4 border-slate-200 p-4 shadow-sm sm:p-5">
       {/* Header controls: Title + Period Pills + Commercial Select */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-gray-100">
+      <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-4 xl:flex-row xl:items-center">
         <div>
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-brand-600" />
-            <h2 className="text-base font-bold text-gray-900">أ‰volution des Impayأ©s</h2>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+              <TrendingUp className="h-4 w-4" />
+            </span>
+            <h2 className="text-base font-bold text-gray-950">Évolution des impayés</h2>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            Courbes des montants par pأ©riodicitأ© (Hebdo, Mois, Annuel) et commercial
+            Analyse des montants par période et par commercial
           </p>
         </div>
 
         {/* Filters Controls Group */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto xl:justify-end">
           {/* Period Selector Tabs */}
-          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200/80">
+          <div className="grid grid-cols-3 items-center rounded-xl border border-slate-200 bg-slate-100 p-1">
             <button
               onClick={() => setPeriodMode('hebdo')}
               className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+                'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
                 periodMode === 'hebdo'
                   ? 'bg-white text-brand-700 shadow-xs font-bold'
                   : 'text-gray-600 hover:text-gray-900'
@@ -299,7 +301,7 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
             <button
               onClick={() => setPeriodMode('mensuel')}
               className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+                'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
                 periodMode === 'mensuel'
                   ? 'bg-white text-brand-700 shadow-xs font-bold'
                   : 'text-gray-600 hover:text-gray-900'
@@ -310,7 +312,7 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
             <button
               onClick={() => setPeriodMode('annuel')}
               className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+                'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
                 periodMode === 'annuel'
                   ? 'bg-white text-brand-700 shadow-xs font-bold'
                   : 'text-gray-600 hover:text-gray-900'
@@ -321,11 +323,11 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
           </div>
 
           {/* Commercial Dropdown */}
-          <div className="relative">
+          <div className="relative min-w-0 sm:min-w-[250px]">
             <select
               value={selectedCommercial}
               onChange={(e) => setSelectedCommercial(e.target.value)}
-              className="pl-7 pr-8 py-1.5 bg-brand-50/80 border border-brand-200 text-brand-800 text-xs font-bold rounded-xl appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400"
+              className="w-full appearance-none rounded-xl border border-brand-200 bg-brand-50/80 py-2 pl-8 pr-8 text-xs font-bold text-brand-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
             >
               <option value="all">Tous les commerciaux (Comparatif)</option>
               {commercials.map((c) => (
@@ -334,19 +336,19 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
                 </option>
               ))}
             </select>
-            <User className="w-3.5 h-3.5 text-brand-600 absolute left-2 top-2.5 pointer-events-none" />
+            <User className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-brand-600" />
           </div>
         </div>
       </div>
 
       {/* Metric summary bar */}
-      <div className="flex items-center justify-between bg-gray-50/80 px-3.5 py-2 rounded-xl border border-gray-100 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-500">Pأ©riode :</span>
+      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium text-gray-500">Période :</span>
           <span className="font-bold text-gray-800 uppercase tracking-wider">
             {periodMode === 'hebdo' ? 'Hebdomadaire' : periodMode === 'mensuel' ? 'Mensuelle' : 'Annuelle'}
           </span>
-          <span className="text-gray-300">â€¢</span>
+          <span className="text-gray-300">•</span>
           <span className="font-semibold text-brand-700">
             {selectedCommercial === 'all' ? 'Vue comparative' : `Commercial: ${selectedCommercial}`}
           </span>
@@ -358,23 +360,23 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
       </div>
 
       {/* Chart Canvas */}
-      <div className="h-[360px] sm:h-[430px] xl:h-[500px]">
+      <div className="h-[320px] w-full sm:h-[360px] lg:h-[390px]">
         <ResponsiveContainer width="100%" height="100%">
           {selectedCommercial === 'all' ? (
-          <LineChart data={activeData} margin={{ left: -10, right: 15, top: 10, bottom: 0 }}>
+          <LineChart data={activeData} margin={{ left: 0, right: 12, top: 12, bottom: 4 }}>
             <CartesianGrid vertical={false} stroke={CHART_INK.gridline} strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} />
-            <YAxis tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
+            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} minTickGap={24} tickMargin={10} />
+            <YAxis width={52} tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
             <Tooltip content={(p: any) => <ChartTooltip {...p} formatter={formatMontant} />} />
             <Legend
-              wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+              wrapperStyle={{ fontSize: '11px', paddingTop: '12px', lineHeight: '20px' }}
               iconType="circle"
             />
             {/* Total General Line */}
             <Line
               type="monotone"
               dataKey="total_montant"
-              name="Total Gأ©nأ©ral"
+              name="Total Général"
               stroke="#0f172a"
               strokeWidth={3}
               strokeDasharray="4 4"
@@ -395,7 +397,7 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
             ))}
           </LineChart>
           ) : (
-          <AreaChart data={activeData} margin={{ left: -10, right: 15, top: 10, bottom: 0 }}>
+          <AreaChart data={activeData} margin={{ left: 0, right: 12, top: 12, bottom: 4 }}>
             <defs>
               <linearGradient id="colorSingleComm" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COMMERCIAL_COLORS[0]} stopOpacity={0.4} />
@@ -403,8 +405,8 @@ function EvolutionImpayesChart({ stats }: { stats: DashboardStats }) {
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke={CHART_INK.gridline} strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} />
-            <YAxis tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
+            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} minTickGap={24} tickMargin={10} />
+            <YAxis width={52} tickFormatter={formatKAxis} tick={valueAxisTick} axisLine={false} tickLine={false} />
             <Tooltip content={(p: any) => <ChartTooltip {...p} formatter={formatMontant} />} />
             <Area
               type="monotone"
@@ -481,25 +483,25 @@ export default function DashboardPage() {
   const portfolioYear = stats.total.date_reference ? new Date(stats.total.date_reference).getFullYear() : new Date().getFullYear();
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="mx-auto max-w-[1600px] space-y-5 pb-8">
       {/* Top Banner Title */}
-      <div className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl border border-brand-100 bg-gradient-to-r from-white via-white to-brand-50/70 p-5 shadow-sm md:flex-row md:items-center sm:p-6">
+      <div className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center sm:p-6">
         <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-brand-200/30 blur-3xl" />
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Pilotage du portefeuille</p>
           <h1 className="text-2xl font-extrabold text-gray-950 tracking-tight sm:text-3xl">Dashboard Recouvrement</h1>
-          <p className="text-xs text-gray-500 mt-1 font-medium">
-            Vue synthأ©tique du portefeuille et suivi analytique dans PROGAD
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            Vue synthétique du portefeuille et suivi analytique des impayés.
           </p>
         </div>
         <div className="relative flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={handleExport} className="rounded-xl">
             <Download className="w-4 h-4" />
-            <span>Exporter Rapport</span>
+            <span>Exporter le rapport</span>
           </Button>
           <Button onClick={() => navigate('/impayes/dossiers')} className="rounded-xl shadow-md shadow-brand-600/20">
             <Plus className="w-4 h-4" />
-            <span>Nouveau Dossier</span>
+            <span>Nouveau dossier</span>
           </Button>
         </div>
       </div>
@@ -519,14 +521,14 @@ export default function DashboardPage() {
                 GD
               </div>
               <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-[9px] text-white font-bold">
-                âœ“
+                ✓
               </span>
             </div>
 
             {/* Entity Title */}
             <div>
               <h2 className="text-lg font-bold text-gray-900">GADIMAT S.A.</h2>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">Portefeuille des impayأ©s</p>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">Portefeuille des impayés</p>
             </div>
 
             {/* Quick Actions */}
@@ -549,10 +551,10 @@ export default function DashboardPage() {
 
             {/* General Info Metadata Block */}
             <div className="border-t border-gray-100 pt-4 text-left space-y-3 text-xs">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Informations Gأ©nأ©rales</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Informations Générales</h3>
 
               <div className="flex justify-between items-center py-1 border-b border-gray-50">
-                <span className="text-gray-500">Date rأ©fأ©rence</span>
+                <span className="text-gray-500">Date référence</span>
                 <span className="font-semibold text-gray-900">{stats.total.date_reference ? formatDate(stats.total.date_reference) : '-'}</span>
               </div>
 
@@ -574,7 +576,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500">Total des impayأ©s</span>
+                <span className="text-gray-500">Total des impayés</span>
                 <span className="font-mono font-extrabold text-emerald-700 text-sm">
                   {formatMontant(stats.total.montant)}
                 </span>
@@ -583,13 +585,13 @@ export default function DashboardPage() {
 
             {/* Status / Tags Pills */}
             <div className="border-t border-gray-100 pt-4 text-left space-y-2">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Rأ©partition Statuts</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Répartition Statuts</h3>
               <div className="flex flex-wrap gap-1.5">
                 <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-semibold text-[11px] rounded-lg border border-emerald-200/50">
-                  {regulariseCount} dossiers rأ©gularisأ©s
+                  {regulariseCount} dossiers régularisés
                 </span>
                 <span className="px-2.5 py-1 bg-brand-50 text-brand-700 font-semibold text-[11px] rounded-lg border border-brand-200/50">
-                  {chqData.count} Chأ¨ques
+                  {chqData.count} Chèques
                 </span>
                 <span className="px-2.5 py-1 bg-violet-50 text-violet-700 font-semibold text-[11px] rounded-lg border border-violet-200/50">
                   {lcnData.count} Effets LCN
@@ -615,58 +617,58 @@ export default function DashboardPage() {
 
           {/* Top Metric Cards Row */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md">
+            <Card className="flex min-h-[142px] items-start gap-3.5 border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md xl:flex-col xl:gap-3">
               <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
                 <Layers className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total impayأ©s</p>
-                <p className="text-lg font-extrabold text-gray-900 leading-tight">{stats.total.count} Dossiers</p>
-                <p className="text-xs font-mono font-semibold text-sky-600 truncate">{formatMontant(stats.total.montant)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total impayés</p>
+                <p className="mt-1 whitespace-nowrap text-base font-extrabold leading-tight text-slate-950">{formatMontant(stats.total.montant)}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{stats.total.count} dossiers</p>
               </div>
             </Card>
 
-            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
+            <Card className="flex min-h-[142px] items-start gap-3.5 border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md xl:flex-col xl:gap-3">
               <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0">
                 <CreditCard className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Chأ¨ques (CHQ)</p>
-                <p className="text-lg font-extrabold text-gray-900 leading-tight">{chqData.count} Dossiers</p>
-                <p className="text-xs font-mono font-semibold text-brand-600 truncate">{formatMontant(chqData.total_montant)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Chèques (CHQ)</p>
+                <p className="mt-1 whitespace-nowrap text-base font-extrabold leading-tight text-slate-950">{formatMontant(chqData.total_montant)}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{chqData.count} dossiers</p>
               </div>
             </Card>
 
-            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+            <Card className="flex min-h-[142px] items-start gap-3.5 border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md xl:flex-col xl:gap-3">
               <div className="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Lettres de Change</p>
-                <p className="text-lg font-extrabold text-gray-900 leading-tight">{lcnData.count} Dossiers</p>
-                <p className="text-xs font-mono font-semibold text-violet-600 truncate">{formatMontant(lcnData.total_montant)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Lettres de change</p>
+                <p className="mt-1 whitespace-nowrap text-base font-extrabold leading-tight text-slate-950">{formatMontant(lcnData.total_montant)}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{lcnData.count} dossiers</p>
               </div>
             </Card>
 
-            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md">
+            <Card className="flex min-h-[142px] items-start gap-3.5 border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md xl:flex-col xl:gap-3">
               <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Dormants (7j+)</p>
-                <p className="text-lg font-extrabold text-gray-900 leading-tight">{stats.dossiersDormants} Dossier</p>
-                <p className="text-xs font-semibold text-emerald-600 truncate">Suivi actif أ  jour</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Dormants (7 j+)</p>
+                <p className="mt-1 text-xl font-extrabold leading-tight text-slate-950">{stats.dossiersDormants}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">dossiers à relancer</p>
               </div>
             </Card>
 
-            <Card className="flex items-center gap-3.5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
+            <Card className="flex min-h-[142px] items-start gap-3.5 border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md xl:flex-col xl:gap-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Taux Rأ©gularisation</p>
-                <p className="text-lg font-extrabold text-gray-900 leading-tight">{regulariseRate} %</p>
-                <p className="text-xs font-semibold text-emerald-600 truncate">{contentieuxCount} dossier(s) en contentieux</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Taux de régularisation</p>
+                <p className="mt-1 text-xl font-extrabold leading-tight text-slate-950">{regulariseRate} %</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{contentieuxCount} dossier(s) en contentieux</p>
               </div>
             </Card>
           </div>
@@ -689,7 +691,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-gray-900">Rأ©partition par Banque (DH)</h2>
+                <h2 className="text-sm font-bold text-gray-900">Répartition par Banque (DH)</h2>
                 <span className="text-xs text-gray-400">Top Banques</span>
               </div>
               <ResponsiveContainer width="100%" height={220}>

@@ -10,7 +10,7 @@ interface SplitBarProps {
 }
 
 /**
- * Horizontal part-to-whole bar for a small number of categories â€” the
+ * Horizontal part-to-whole bar for a small number of categories — the
  * accessible, comparable alternative to a 2-3 slice pie/donut. Segments are
  * separated by a surface gap (never a stroke) and each carries a direct
  * label + value + share below, so identity never depends on color alone.

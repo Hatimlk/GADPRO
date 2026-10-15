@@ -32,7 +32,7 @@ export default function AlertsPage() {
 
       {!loading && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <AlertSummary icon={CalendarClock} label="Dأ©lais dأ©passأ©s" value={rappels.length} tone="danger" />
+          <AlertSummary icon={CalendarClock} label="Délais dépassés" value={rappels.length} tone="danger" />
           <AlertSummary icon={Clock} label="Dossiers dormants" value={dormants.length} tone="warning" />
           <AlertSummary icon={AlertTriangle} label="Contentieux" value={contentieux.length} tone="danger" />
         </div>
@@ -45,12 +45,12 @@ export default function AlertsPage() {
           <Card padding="none" className="overflow-hidden border-gray-200/80 shadow-sm lg:col-span-2">
             <div className="flex items-center gap-3 border-b border-red-100 bg-red-50/50 px-6 py-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-danger-600 shadow-xs"><CalendarClock className="h-5 w-5" /></div>
-              <h2 className="text-lg font-semibold text-gray-900">Dأ©lais dâ€™action dأ©passأ©s</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Délais d’action dépassés</h2>
               <Badge tone="danger">{rappels.length}</Badge>
             </div>
-            <p className="px-6 pt-2 text-xs text-gray-500">Actions dont la date limite est dأ©passأ©e</p>
+            <p className="px-6 pt-2 text-xs text-gray-500">Actions dont la date limite est dépassée</p>
             {rappels.length === 0 ? (
-              <EmptyState icon={<CalendarClock className="h-6 w-6 text-success-600" />} title="Aucun dأ©lai dأ©passأ©" />
+              <EmptyState icon={<CalendarClock className="h-6 w-6 text-success-600" />} title="Aucun délai dépassé" />
             ) : (
               <Table>
                 <Thead className="sticky top-0 z-10"><tr><Th>Partenaire</Th><Th>Action</Th><Th>Date limite</Th><Th align="center">Retard</Th><Th>Commercial</Th><Th></Th></tr></Thead>
@@ -80,7 +80,7 @@ export default function AlertsPage() {
               <EmptyState
                 icon={<AlertTriangle className="h-6 w-6 text-success-600" />}
                 title="Aucune alerte"
-                description="Tous les dossiers sont أ  jour"
+                description="Tous les dossiers sont à jour"
               />
             ) : (
               <Table>
@@ -125,7 +125,7 @@ export default function AlertsPage() {
               <h2 className="text-lg font-semibold text-gray-900">Dossiers en contentieux</h2>
               <Badge tone="danger">{contentieux.length}</Badge>
             </div>
-            <p className="px-6 pt-2 text-xs text-gray-500">Contentieux / prأ©-contentieux</p>
+            <p className="px-6 pt-2 text-xs text-gray-500">Contentieux / pré-contentieux</p>
             {contentieux.length === 0 ? (
               <EmptyState
                 icon={<AlertTriangle className="h-6 w-6 text-success-600" />}

@@ -57,6 +57,13 @@ export function AppLayout() {
     return () => window.clearInterval(interval);
   }, [user?.id]);
 
+  useEffect(() => {
+    document.title = 'Suivi des Impayés · PROGAD';
+    return () => {
+      document.title = 'PROGAD · ERP interne GADIMAT';
+    };
+  }, []);
+
   const openNotification = async (notification: AppNotification) => {
     if (!notification.lu) {
       await api.markNotificationRead(notification.id).catch(() => undefined);
@@ -92,16 +99,16 @@ export function AppLayout() {
         { to: '/impayes/dossiers', icon: FileText, label: 'Dossiers' },
         { to: '/impayes/alertes', icon: Bell, label: 'Alertes', badge: alertCount },
         ...(user?.role === 'admin'
-          ? [{ to: '/impayes/derogation', icon: Scale, label: 'Dأ©rogation' }]
+          ? [{ to: '/impayes/derogation', icon: Scale, label: 'Dérogations' }]
           : []),
         ...(user?.role === 'admin'
-          ? [{ to: '/impayes/admin', icon: Settings, label: 'Paramأ¨tres' }]
+          ? [{ to: '/impayes/admin', icon: Settings, label: 'Paramètres' }]
           : []),
       ]),
     ];
 
   return (
-    <div className="flex h-[100dvh] bg-[#f4f5f8]">
+    <div className="flex h-[100dvh] bg-[#f5f7fb]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -112,31 +119,34 @@ export function AppLayout() {
 
       {/* Dark Vertical Navigation Sidebar (Inspired by reference UI) */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#111827] text-slate-300 border-r border-slate-800/80 transform transition-transform duration-200 ease-in-out flex flex-col ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#0f172a] text-slate-300 border-r border-slate-800/80 transform transition-transform duration-200 ease-in-out flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Brand Header */}
-        <div className="flex min-h-[73px] items-center border-b border-slate-800/80 px-5 py-3">
-          <img src="/Asset%2010@4x.png" alt="PROGAD by GADIMAT" className="h-auto w-[184px] object-contain object-left" />
+        <div className="flex min-h-[108px] flex-col items-center justify-center border-b border-slate-800/80 px-5 py-4">
+          <img src="/Asset%2010@4x.png" alt="PROGAD by GADIMAT" className="h-auto w-[178px] object-contain" />
+          <p className="mt-2 text-center text-[13px] font-semibold tracking-wide text-blue-200">
+            Suivi des Impayés
+          </p>
         </div>
 
         {/* Navigation items */}
-        <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 space-y-1.5 overflow-y-auto p-3.5">
           {links.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
+                `group flex min-h-11 items-center gap-3 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 ${
                   isActive
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/25 font-semibold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                    ? 'border-brand-500/60 bg-brand-600 text-white shadow-lg shadow-brand-950/20 font-semibold'
+                    : 'border-transparent text-slate-400 hover:border-slate-700/70 hover:bg-slate-800/70 hover:text-white'
                 }`
               }
             >
-              <link.icon className="w-5 h-5 flex-shrink-0" />
+              <link.icon className="h-[18px] w-[18px] flex-shrink-0 transition-transform group-hover:scale-105" />
               <span className="flex-1">{link.label}</span>
               {link.badge !== undefined && link.badge > 0 && (
                 <Badge tone="danger" pill className="bg-danger-600 text-white px-2 py-0.5 text-xs font-bold shadow-xs">
@@ -165,7 +175,7 @@ export function AppLayout() {
             className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors border border-slate-700/50"
           >
             <LogOut className="w-4 h-4 text-danger-400" />
-            Dأ©connexion
+            Déconnexion
           </button>
         </div>
       </aside>
@@ -183,8 +193,8 @@ export function AppLayout() {
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-base font-bold text-gray-900 tracking-tight sm:text-lg">Espace de Gestion</h2>
-              <p className="text-xs text-gray-500 hidden sm:block">Derniأ¨re mise أ  jour: Aujourd'hui</p>
+              <h2 className="text-base font-bold text-gray-900 tracking-tight sm:text-lg">Suivi des Impayés</h2>
+              <p className="hidden text-xs text-gray-500 sm:block">Dernière mise à jour : aujourd’hui</p>
             </div>
           </div>
 
@@ -314,7 +324,7 @@ export function AppLayout() {
                       onClick={handleLogout}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4" /> Se dأ©connecter
+                      <LogOut className="h-4 w-4" /> Se déconnecter
                     </button>
                   </div>
                 </div>
@@ -325,7 +335,7 @@ export function AppLayout() {
         </header>
 
         {/* Dynamic page outlet */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+        <main className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-3 sm:space-y-6 sm:p-4 md:p-6">
           <Outlet />
         </main>
       </div>

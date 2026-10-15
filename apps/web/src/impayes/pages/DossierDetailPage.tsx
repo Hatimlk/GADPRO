@@ -125,8 +125,8 @@ export default function DossierDetailPage() {
       const ancien = dossier?.statut || '';
       await api.addAction(id!, {
         contenu: motifChangement.trim()
-          ? `[CHANGEMENT STATUT] ${ancien} â†’ ${newStatut}\n${motifChangement.trim()}`
-          : `[CHANGEMENT STATUT] ${ancien} â†’ ${newStatut}`,
+          ? `[CHANGEMENT STATUT] ${ancien} → ${newStatut}\n${motifChangement.trim()}`
+          : `[CHANGEMENT STATUT] ${ancien} → ${newStatut}`,
         type_action: 'modification_statut',
       });
       setShowStatutChange(false);
@@ -150,7 +150,7 @@ export default function DossierDetailPage() {
   const canDeleteAction = user?.role === 'admin' || user?.email === 'franck.guillet@gadimat.com';
 
   const handleDeleteAction = async (actionId: string) => {
-    if (!confirm('Supprimer cette action ? Elle sera aussi retirأ©e du journal d\'audit.')) return;
+    if (!confirm('Supprimer cette action ? Elle sera aussi retirée du journal d\'audit.')) return;
     try {
       await api.deleteAction(id!, actionId);
       await loadDossier();
@@ -174,7 +174,7 @@ export default function DossierDetailPage() {
           className="group inline-flex w-fit items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-white hover:text-gray-950"
         >
           <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-          Retour أ  la liste
+          Retour à la liste
         </button>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handlePrint}>
@@ -189,7 +189,7 @@ export default function DossierDetailPage() {
         <div className="border-b border-gray-200 bg-gradient-to-r from-slate-50 via-white to-brand-50/40 p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">Dossier impayأ©</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">Dossier impayé</p>
               <h1 className="break-words text-xl font-bold tracking-tight text-gray-950 sm:truncate sm:text-2xl">{dossier.nom_tire}</h1>
               <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 shadow-xs">
                 <Hash className="h-3.5 w-3.5 text-gray-400" />
@@ -232,13 +232,13 @@ export default function DossierDetailPage() {
         {/* Infos */}
         <div className="grid grid-cols-1 gap-3 p-4 min-[420px]:grid-cols-2 sm:p-5 lg:grid-cols-5">
           <InfoField icon={Calendar} label="Date facture" value={dossier.date_facture ? formatDate(dossier.date_facture) : '-'} />
-          <InfoField icon={Calendar} label="أ‰chأ©ance" value={dossier.date_echeance ? formatDate(dossier.date_echeance) : '-'} />
+          <InfoField icon={Calendar} label="Échéance" value={dossier.date_echeance ? formatDate(dossier.date_echeance) : '-'} />
           <InfoField icon={Building2} label="Banque" value={dossier.banque} />
           <InfoField icon={Hash} label="Montant" value={formatMontant(dossier.montant)} bold />
           <InfoField
             icon={FileText}
             label="Type"
-            value={dossier.type_valeur === 'CHQ' ? 'Chأ¨que' : 'Lettre de change'}
+            value={dossier.type_valeur === 'CHQ' ? 'Chèque' : 'Lettre de change'}
           />
           <InfoField
             icon={User}
@@ -249,14 +249,14 @@ export default function DossierDetailPage() {
           <InfoField icon={User} label="Commercial" value={dossier.commercial_nom || '-'} />
           <InfoField
             icon={Clock}
-            label="Derniأ¨re action"
+            label="Dernière action"
             value={
               dossier.date_derniere_action
                 ? `${formatDate(dossier.date_derniere_action)} (${joursDepuis(dossier.date_derniere_action)}j)`
                 : 'Aucune'
             }
           />
-          <InfoField icon={Clock} label="Date d'impayأ© dans ERP" value={formatDate(dossier.date_saisie)} />
+          <InfoField icon={Clock} label="Date d'impayé dans ERP" value={formatDate(dossier.date_saisie)} />
         </div>
 
         {dossier.observations && (
@@ -276,7 +276,7 @@ export default function DossierDetailPage() {
             </div>
             <div>
               <h2 className="font-semibold text-gray-950">Ajouter une action</h2>
-              <p className="mt-0.5 text-sm text-gray-500">Consignez le suivi et programmez une date de rappel si nأ©cessaire.</p>
+              <p className="mt-0.5 text-sm text-gray-500">Consignez le suivi et programmez une date de rappel si nécessaire.</p>
             </div>
           </div>
           <form onSubmit={handleAddAction} className="space-y-4">
@@ -302,7 +302,7 @@ export default function DossierDetailPage() {
               value={actionContent}
               onChange={(e) => setActionContent(e.target.value)}
               rows={4}
-              placeholder="Dأ©crivez l'action effectuأ©e..."
+              placeholder="Décrivez l'action effectuée..."
               required
             />
             <div className="flex justify-end border-t border-gray-100 pt-4">
@@ -328,8 +328,8 @@ export default function DossierDetailPage() {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
               <MessageSquare className="h-5 w-5" />
             </div>
-            <p className="font-medium text-gray-800">Aucune action enregistrأ©e</p>
-            <p className="mt-1 text-sm text-gray-500">La premiأ¨re action apparaأ®tra ici.</p>
+            <p className="font-medium text-gray-800">Aucune action enregistrée</p>
+            <p className="mt-1 text-sm text-gray-500">La première action apparaîtra ici.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -397,11 +397,11 @@ export default function DossierDetailPage() {
               value={editForm.type_valeur}
               onChange={(e) => setEditForm({ ...editForm, type_valeur: e.target.value })}
             >
-              <option value="CHQ">Chأ¨que (CHQ)</option>
+              <option value="CHQ">Chèque (CHQ)</option>
               <option value="LCN">Lettre de change (LCN)</option>
             </Select>
             <Input
-              label="Nآ° Valeur *"
+              label="N° Valeur *"
               value={editForm.numero_valeur}
               onChange={(e) => setEditForm({ ...editForm, numero_valeur: e.target.value })}
               required
@@ -433,7 +433,7 @@ export default function DossierDetailPage() {
               value={editForm.commercial_id}
               onChange={(e) => setEditForm({ ...editForm, commercial_id: e.target.value })}
             >
-              <option value="">-- Non assignأ© --</option>
+              <option value="">-- Non assigné --</option>
               {commerciaux.map((c) => (
                 <option key={c.id} value={c.id}>{c.nom}</option>
               ))}

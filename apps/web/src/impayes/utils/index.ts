@@ -33,7 +33,7 @@ export function joursDepuis(dateStr: string | null): number {
 }
 
 /**
- * Pour une relation CDC, le porteur est la partie du partenaire situأ©e aprأ¨s
+ * Pour une relation CDC, le porteur est la partie du partenaire située après
  * le premier deux-points (ex. "ZEKNOUN RACHID : LAABIDI" -> "LAABIDI").
  */
 export function getPorteur(nomTire: string, relation: string): string {
@@ -49,26 +49,26 @@ export type SemanticTone = 'danger' | 'warning' | 'success' | 'info' | 'neutral'
 
 /**
  * Maps a dossier's statut label to a semantic tone. Keys must match the
- * accented labels seeded in backend/migrations/002_seed_data.sql exactly â€”
+ * accented labels seeded in backend/migrations/002_seed_data.sql exactly —
  * a prior unaccented version of this map silently never matched and every
  * page reimplemented this logic inline instead.
  */
 export function getStatutColor(statut: string): SemanticTone {
   const map: Record<string, SemanticTone> = {
     'Contentieux': 'danger',
-    'Prأ©-contentieux': 'warning',
+    'Pré-contentieux': 'warning',
     'A rendre au client': 'warning',
     'A voir avec le commercial': 'neutral',
     'Attente retour du client': 'neutral',
-    'Valeur أ  reprأ©senter': 'info',
-    'Rأ¨glement أ  recevoir': 'success',
-    'Rأ¨glement أ  rأ©cupأ©rer': 'success',
-    'Rأ¨glement partiel': 'info',
-    'Rأ©gularisأ© - OK': 'success',
-    'Reprأ©sentأ©': 'info',
+    'Valeur à représenter': 'info',
+    'Règlement à recevoir': 'success',
+    'Règlement à récupérer': 'success',
+    'Règlement partiel': 'info',
+    'Régularisé - OK': 'success',
+    'Représenté': 'info',
     'Sans suite': 'neutral',
-    'Valeur أ  remplacer': 'warning',
-    "Valeur envoyأ©e أ  l'encaissement": 'info',
+    'Valeur à remplacer': 'warning',
+    "Valeur envoyée à l'encaissement": 'info',
   };
   return map[statut] || 'neutral';
 }

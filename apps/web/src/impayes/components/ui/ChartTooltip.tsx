@@ -14,7 +14,7 @@ interface ChartTooltipProps {
 
 /**
  * Recharts custom tooltip content, styled as a small card. Values lead
- * (bold, high-contrast), series name follows (secondary) â€” inverted from
+ * (bold, high-contrast), series name follows (secondary) — inverted from
  * the legend, since the reader already has the mark and wants the number.
  */
 export function ChartTooltip({ active, label, payload, formatter }: ChartTooltipProps) {

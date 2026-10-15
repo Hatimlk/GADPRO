@@ -119,7 +119,7 @@ export default function CommercialPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`Bonjour, ${user?.nom}`} subtitle="Voici le rأ©sumأ© de vos dossiers impayأ©s" />
+      <PageHeader title={`Bonjour, ${user?.nom}`} subtitle="Voici le résumé de vos dossiers impayés" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
@@ -150,7 +150,7 @@ export default function CommercialPage() {
 
       {!statsLoading && statutCounts.length > 0 && (
         <Card>
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Rأ©partition par statut</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Répartition par statut</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {statutCounts.map((s) => (
               <div key={s.statut} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
@@ -166,7 +166,7 @@ export default function CommercialPage() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <Card>
             <div className="mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">أ‰volution mensuelle de mes impayأ©s</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Évolution mensuelle de mes impayés</h2>
               <p className="text-xs text-gray-500 mt-1">Montant total par mois</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
@@ -188,8 +188,8 @@ export default function CommercialPage() {
 
           <Card>
             <div className="mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">Mes impayأ©s par banque</h2>
-              <p className="text-xs text-gray-500 mt-1">Rأ©partition des montants</p>
+              <h2 className="text-sm font-semibold text-gray-900">Mes impayés par banque</h2>
+              <p className="text-xs text-gray-500 mt-1">Répartition des montants</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={(stats.parBanque || []).slice(0, 8)} margin={{ left: -5, right: 12, top: 8 }}>
@@ -207,8 +207,8 @@ export default function CommercialPage() {
       <Card padding="none" className="overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Mes dossiers rأ©cents ({total})</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Recherche et filtres limitأ©s أ  vos dossiers affectأ©s</p>
+            <h2 className="text-sm font-semibold text-gray-900">Mes dossiers récents ({total})</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Recherche et filtres limités à vos dossiers affectés</p>
           </div>
           <button
             onClick={() => { loadDossiers(); }}
@@ -227,7 +227,7 @@ export default function CommercialPage() {
                 name="commercial-search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Rechercher par partenaire, numأ©ro ou banque..."
+                placeholder="Rechercher par partenaire, numéro ou banque..."
                 icon={<Search className="h-4 w-4" />}
               />
             </div>
@@ -264,7 +264,7 @@ export default function CommercialPage() {
               </Select>
               <Select label="Type" value={filters.type_valeur || ''} onChange={(event) => setFilter('type_valeur', event.target.value)}>
                 <option value="">Tous les types</option>
-                <option value="CHQ">Chأ¨que</option>
+                <option value="CHQ">Chèque</option>
                 <option value="LCN">Lettre de change</option>
               </Select>
             </div>
@@ -274,7 +274,7 @@ export default function CommercialPage() {
         {loading ? (
           <PageSpinner label="Chargement..." />
         ) : dossiers.length === 0 ? (
-          <EmptyState icon={<FileText className="w-6 h-6" />} title="Aucun dossier assignأ©" />
+          <EmptyState icon={<FileText className="w-6 h-6" />} title="Aucun dossier assigné" />
         ) : (
           <>
           <div className="divide-y divide-gray-100 md:hidden">
