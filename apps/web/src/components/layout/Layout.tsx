@@ -1,13 +1,34 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { AppTour } from "../AppTour";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu } from "lucide-react";
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const pageTitles = [
+      ["/cheques/consommations/branches", "Consommations par branche"],
+      ["/cheques/consommations", "Consommations"],
+      ["/cheques/calendrier", "Calendrier"],
+      ["/cheques/partenaires", "Partenaires"],
+      ["/cheques/virements", "Ordres de virement"],
+      ["/cheques/impression", "Impression"],
+      ["/cheques/instances", "Instances"],
+      ["/cheques/comptes", "Comptes"],
+      ["/cheques/roles", "Rôles"],
+      ["/cheques/regles", "Règles"],
+      ["/cheques/guide", "Guide d'utilisation"],
+    ] as const;
+    const pageTitle = pageTitles.find(([path]) => location.pathname.startsWith(path))?.[1] ?? "Tableau de bord";
+    document.title = `${pageTitle} · Suivi des Instances · PROGAD`;
+    return () => { document.title = "PROGAD · ERP interne GADIMAT"; };
+  }, [location.pathname]);
+
   return (
     <>
       <AppTour />

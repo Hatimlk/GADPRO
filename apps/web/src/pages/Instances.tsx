@@ -529,7 +529,7 @@ export function Instances() {
     <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[22px] mb-1 font-bold text-slate-900 tracking-tight">Factures en Instance</h1>
+          <h1 className="text-[22px] mb-1 font-bold text-slate-900 tracking-tight">Factures en instance</h1>
           <div className="text-[12px] text-slate-500 font-medium flex items-center gap-2">
             <span>Tableau de Bord</span>
             <span className="w-1 h-1 rounded-full bg-slate-300"></span>

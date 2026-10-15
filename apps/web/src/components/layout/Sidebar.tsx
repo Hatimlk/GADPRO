@@ -25,19 +25,19 @@ const NAV_GROUPS = [
     items: [
       { name: "Tableau de bord", path: "/cheques", icon: LayoutDashboard, requiredModule: "cheques" },
       { name: "Comptes", path: "/cheques/comptes", icon: Briefcase, requiredModule: "cheques" },
-      { name: "Rأ´les", path: "/cheques/roles", icon: UserCog, hasInfo: true, requiredModule: "cheques" },
+      { name: "Rôles", path: "/cheques/roles", icon: UserCog, hasInfo: true, requiredModule: "cheques" },
+      { name: "Consommations", path: "/cheques/consommations", icon: Droplets, requiredModule: "consommations" },
     ]
   },
   {
-    title: "CHأˆQUES ET EFFETS",
+    title: "SUIVI DES INSTANCES",
     items: [
-      { name: "Rأ©glأ©s", path: "/cheques/regles", icon: FileCheck, requiredModule: "cheques" },
+      { name: "Règles", path: "/cheques/regles", icon: FileCheck, requiredModule: "cheques" },
       { name: "Instances", path: "/cheques/instances", icon: Clock, requiredModule: "cheques" },
       { name: "Calendrier", path: "/cheques/calendrier", icon: CalendarDays, requiredModule: "cheques" },
       { name: "Partenaires", path: "/cheques/partenaires", icon: Users, requiredModule: "cheques" },
-      { name: "Ordres de Virement", path: "/cheques/virements", icon: Send, requiredModule: "cheques" },
+      { name: "Ordres de virement", path: "/cheques/virements", icon: Send, requiredModule: "cheques" },
       { name: "Impression", path: "/cheques/impression", icon: Printer, requiredModule: "cheques" },
-      { name: "Consommations", path: "/cheques/consommations", icon: Droplets, requiredModule: "consommations" },
     ]
   },
   {
@@ -56,8 +56,9 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
 
   return (
     <div className={cn("w-[240px] bg-slate-900 h-[100dvh] flex flex-col text-slate-300", className)}>
-      <div className="p-6 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center px-6 pb-4 pt-6">
         <ProgadBrand tone="dark" className="w-[176px]" />
+        <p className="mt-3 text-center text-[13px] font-semibold tracking-wide text-blue-100">Suivi des Instances</p>
       </div>
 
       <nav className="flex-1 py-4 overflow-y-auto hide-scrollbar">
@@ -81,7 +82,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
                     data-tour={item.name}
                     onClick={onNavigate}
                     className={cn(
-                      "flex items-center gap-[14px] px-4 py-3 mx-4 rounded-[12px] text-[13px] font-bold transition-all duration-200",
+                      "mx-4 flex min-w-0 items-center gap-[14px] rounded-[12px] px-4 py-3 text-[13px] font-bold leading-5 transition-all duration-200",
                       isActive 
                         ? "bg-[#1e293b] text-blue-500" 
                         : "text-slate-300 hover:text-slate-200 hover:bg-[#1e293b]/50"
@@ -95,7 +96,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
                         </div>
                       )}
                     </div>
-                    {item.name}
+                    <span className="min-w-0 flex-1">{item.name}</span>
                   </Link>
                 );
               })}
@@ -120,7 +121,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
           <button 
             onClick={logout}
             className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-[#1e293b] rounded-md transition-colors"
-            title="Se dأ©connecter"
+            title="Se déconnecter"
           >
             <LogOut className="w-[15px] h-[15px]" strokeWidth={2.5} />
           </button>

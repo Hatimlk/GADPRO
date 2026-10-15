@@ -66,8 +66,8 @@ const WEEK_FILTERS = [
 ];
 
 const ANNUAL_FILTERS = [
-  "Total des montants à payer par mois",
-  "Total des montants déjà payés par mois"
+  "Montants à payer par mois",
+  "Montants déjà payés par mois"
 ];
 
 function DropdownSelect({ options, value, onChange, prefix = "", buttonClassName = "" }: any) {
@@ -187,9 +187,9 @@ export function Dashboard() {
       let match = false;
       const targetDate = isPaid(i) ? (i.paymentDate || i.date) : getDueDate(i).toISOString().substring(0, 10);
       
-      if (annualFilter === "Total des montants à payer par mois") {
+      if (annualFilter === "Montants à payer par mois") {
         match = !isPaid(i) && targetDate.startsWith(String(selectedYear));
-      } else if (annualFilter === "Total des montants déjà payés par mois") {
+      } else if (annualFilter === "Montants déjà payés par mois") {
         match = isPaid(i) && targetDate.startsWith(String(selectedYear));
       }
 
@@ -266,7 +266,7 @@ export function Dashboard() {
           <SemiCircleGauge value={enAttenteAmount} total={totalAmount} count={enAttenteCount} amount={enAttenteAmount} label="En Attente" color="#F59E0B" />
           <SemiCircleGauge value={enRetardAmount} total={totalAmount} count={enRetardCount} amount={enRetardAmount} label="En Retard" color="#EF4444" />
           <SemiCircleGauge value={payeAmount} total={totalAmount} count={payeCount} amount={payeAmount} label="Réglées" color="#22C55E" />
-          <SemiCircleGauge value={totalAmount} total={totalAmount} count={totalCount} amount={totalAmount} label="Total Factures" color="#3B82F6" />
+          <SemiCircleGauge value={totalAmount} total={totalAmount} count={totalCount} amount={totalAmount} label="Total des factures" color="#3B82F6" />
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-full border border-slate-200 text-[11px] font-semibold text-slate-500 shadow-sm">
@@ -285,7 +285,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-[16px] border border-slate-100 shadow-sm p-5 flex flex-col min-h-[400px]">
           <div className="flex items-center gap-2 font-bold text-[14px] text-slate-800 mb-4">
-            <LayoutList className="w-4 h-4 text-slate-400" /> Top 10 Valeurs à Payer
+            <LayoutList className="w-4 h-4 text-slate-400" /> Top 10 des valeurs à payer
           </div>
           <div className="flex-1 space-y-3">
             {top10Instances.map(inst => (
@@ -319,7 +319,7 @@ export function Dashboard() {
 
         <div className="bg-white rounded-[16px] border border-slate-100 shadow-sm p-5 flex flex-col min-h-[400px]">
           <div className="flex items-center gap-2 font-bold text-[14px] text-slate-800 mb-4">
-            <Users className="w-4 h-4 text-slate-400" /> Top Fournisseurs
+            <Users className="w-4 h-4 text-slate-400" /> Principaux fournisseurs
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-4 pb-1">
             <DropdownSelect 
@@ -357,7 +357,7 @@ export function Dashboard() {
         <div className="flex flex-col gap-6">
           <div className="bg-white rounded-[16px] border border-slate-100 shadow-sm p-5 flex flex-col min-h-[200px] relative">
             <div className="flex items-center gap-2 font-bold text-[14px] text-slate-800 mb-4">
-              <BarChart3 className="w-4 h-4 text-slate-400" /> Statistique annuel
+              <BarChart3 className="w-4 h-4 text-slate-400" /> Statistiques annuelles
             </div>
             <div className="flex flex-col items-start gap-2 mb-4 pb-1 relative z-20">
               <DropdownSelect 
@@ -395,7 +395,7 @@ export function Dashboard() {
           
           <div className="bg-white rounded-[16px] border border-slate-100 shadow-sm p-5 flex flex-col min-h-[250px]">
             <div className="flex items-center gap-2 font-bold text-[14px] text-slate-800 mb-4">
-              <CalendarIcon className="w-4 h-4 text-slate-400" /> À échéance 7 prochains jrs
+              <CalendarIcon className="w-4 h-4 text-slate-400" /> Échéances des 7 prochains jours
             </div>
             <div className="flex-1 overflow-y-auto pr-1 space-y-4">
               {weekDays.map((date, idx) => {
@@ -425,7 +425,7 @@ export function Dashboard() {
                 );
               })}
               {weekInstances.length === 0 && (
-                <div className="text-center text-[12px] text-slate-400 py-4">Aucune facture à échéance dans les 7 jours.</div>
+                <div className="text-center text-[12px] text-slate-400 py-4">Aucune échéance prévue dans les 7 prochains jours.</div>
               )}
             </div>
           </div>
@@ -434,7 +434,7 @@ export function Dashboard() {
 
       <div className="flex items-center justify-between mt-8 mb-4">
         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 text-[11px] font-semibold text-slate-500 shadow-sm">
-          <span>Total Factures</span>
+          <span>Total des factures</span>
           <div className="flex items-center gap-1.5">
             <span className="bg-slate-100 text-slate-600 px-1.5 rounded-[4px]">{instances.length}</span>
             <span className="text-[#1E293B] font-bold">{formatMAD(totalAmount).replace('MAD', 'DH')}</span>

@@ -91,7 +91,7 @@ export function Virements() {
         <div>
           <h1 className="text-[18px] mb-0 font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Send className="w-5 h-5 text-primary" />
-            Ordres de Virement
+            Ordres de virement
           </h1>
           <p className="text-[12px] text-slate-500 m-0">Générez et imprimez vos ordres de virement bancaire.</p>
         </div>

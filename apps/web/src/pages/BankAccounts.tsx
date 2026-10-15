@@ -17,7 +17,7 @@ export function BankAccounts() {
     <div className="space-y-6 max-w-[1200px] mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-[18px] mb-0 font-bold text-slate-900 tracking-tight">Comptes Bancaires</h1>
+          <h1 className="text-[18px] mb-0 font-bold text-slate-900 tracking-tight">Comptes bancaires</h1>
           <p className="text-[12px] text-slate-500 m-0">Gérez vos comptes bancaires et carnets.</p>
         </div>
 

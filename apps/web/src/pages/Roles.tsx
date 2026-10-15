@@ -42,7 +42,7 @@ export function Roles() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-[18px] mb-0 font-bold text-slate-900 tracking-tight">Rôles & Permissions</h1>
+          <h1 className="text-[18px] mb-0 font-bold text-slate-900 tracking-tight">Rôles et permissions</h1>
           <p className="text-[12px] text-slate-500 m-0">Gérez les accès de vos collaborateurs.</p>
         </div>
         <div className="flex items-center gap-3">

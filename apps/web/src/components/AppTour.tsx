@@ -158,7 +158,7 @@ export function AppTour() {
     },
     {
       target: "[data-tour='Rôles']",
-      title: "Gestion des Rôles",
+      title: "Gestion des rôles",
       content: "Gérez les accès de votre équipe. En tant qu'administrateur, vous pouvez ajouter des utilisateurs et définir leurs permissions.",
       placement: "right",
       route: "/roles",
@@ -181,8 +181,8 @@ export function AppTour() {
       icon: <span className="text-xl">🔍</span>
     },
     {
-      target: "[data-tour='Réglés']",
-      title: "Documents Réglés",
+      target: "[data-tour='Règles']",
+      title: "Documents réglés",
       content: "Consultez l'historique de tous vos chèques et effets qui ont été payés et réglés définitivement.",
       placement: "right",
       route: "/regles",

@@ -15,7 +15,7 @@ type UserDraft = { id?: string; name: string; email: string; password: string; p
 
 const modules = {
   cheques: {
-    label: 'Chèques et effets', href: '/cheques', icon: Banknote,
+    label: 'Suivi des Instances', href: '/cheques', icon: Banknote,
     iconStyle: 'bg-blue-50 text-blue-600 ring-blue-100', hoverStyle: 'hover:border-blue-200 hover:bg-blue-50/30',
   },
   impayes: {
@@ -29,7 +29,7 @@ const modules = {
 };
 
 const accessConfig: Record<ModuleCode, { label: string; source: keyof LegacyOptions; roles: string[] }> = {
-  cheques: { label: 'Chèques et effets', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
+  cheques: { label: 'Suivi des Instances', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
   impayes: { label: 'Suivi des impayés', source: 'impayes', roles: ['commercial', 'responsable_recouvrement', 'lecture_seule', 'admin'] },
   consommations: { label: 'Consommations', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
 };
@@ -59,7 +59,7 @@ export function ModuleDashboard() {
   const firstName = currentUser?.name?.trim().split(/\s+/)[0] || 'Utilisateur';
   const initials = currentUser?.name?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'GA';
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-  const profileLabel = currentUser?.platformAdmin ? 'Administrateur plateforme' : 'Collaborateur';
+  const profileLabel = currentUser?.platformAdmin ? 'Administrateur' : 'Collaborateur';
 
   return <main className="min-h-screen bg-[#f5f7fb] text-[#111827]">
     <header className="sticky top-0 z-30 border-b border-[#e5eaf2] bg-white/95 backdrop-blur-xl">
@@ -80,14 +80,12 @@ export function ModuleDashboard() {
       <section aria-labelledby="dashboard-title">
         <p className="text-xs font-semibold capitalize text-[#2455a4]">{today}</p>
         <h1 id="dashboard-title" className="mt-2 text-[2rem] font-black tracking-[-0.035em] text-slate-950 sm:text-4xl">Bonjour {firstName} <span aria-hidden="true">👋</span></h1>
-        <p className="mt-2 text-sm text-slate-500 sm:text-base">Accédez à vos applications professionnelles.</p>
       </section>
 
-      <section className="mt-10 sm:mt-12" aria-labelledby="applications-title">
-        <h2 id="applications-title" className="text-sm font-bold tracking-tight text-slate-800">Applications</h2>
-        {allowed.length ? <div className="mt-4 grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+      <section className="mt-10 sm:mt-12" aria-label="Applications">
+        {allowed.length ? <div className="grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
           {allowed.map(([code, item]) => <ApplicationTile key={code} item={item} />)}
-        </div> : <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
+        </div> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
       </section>
     </div>
   </main>;
@@ -95,9 +93,9 @@ export function ModuleDashboard() {
 
 function ApplicationTile({ item }: { item: (typeof modules)[keyof typeof modules] }) {
   const Icon = item.icon;
-  return <Link to={item.href} aria-label={`Ouvrir ${item.label}`} className={`group flex min-h-40 flex-col items-center justify-center rounded-2xl border border-[#e5eaf2] bg-white px-4 py-6 text-center shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2455a4] focus-visible:ring-offset-2 ${item.hoverStyle}`}>
-    <span className={`grid h-14 w-14 place-items-center rounded-2xl ring-1 ring-inset transition duration-200 group-hover:scale-105 ${item.iconStyle}`}><Icon className="h-6 w-6" strokeWidth={1.9} /></span>
-    <h3 className="mt-5 text-sm font-bold leading-snug text-slate-900 sm:text-[15px]">{item.label}</h3>
+  return <Link to={item.href} aria-label={`Ouvrir ${item.label}`} className={`group flex min-h-44 flex-col items-center justify-center rounded-2xl border border-[#e5eaf2] bg-white px-5 py-7 text-center shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2455a4] focus-visible:ring-offset-2 sm:min-h-52 ${item.hoverStyle}`}>
+    <span className={`grid h-16 w-16 place-items-center rounded-2xl ring-1 ring-inset transition duration-200 group-hover:scale-105 ${item.iconStyle}`}><Icon className="h-7 w-7" strokeWidth={1.9} /></span>
+    <h3 className="mt-6 text-[15px] font-bold leading-snug text-slate-900 sm:text-base">{item.label}</h3>
   </Link>;
 }
 
@@ -142,7 +140,7 @@ export function AdministrationPage() {
       .map(([module, access]) => ({ module, role: access.role, legacyUserId: access.legacyUserId }));
     if (accesses.some((access) => !access.legacyUserId)) { setError('Sélectionnez un identifiant historique pour chaque module activé.'); return; }
     const chequesIds = accesses.filter((access) => access.module === 'cheques' || access.module === 'consommations').map((access) => access.legacyUserId);
-    if (new Set(chequesIds).size > 1) { setError('Chèques et Consommations doivent correspondre au même utilisateur historique Chèques.'); return; }
+    if (new Set(chequesIds).size > 1) { setError('Suivi des Instances et Consommations doivent correspondre au même utilisateur historique Chèques.'); return; }
     setSaving(true); setError(''); setSuccess('');
     try {
       if (!draft.id) {
