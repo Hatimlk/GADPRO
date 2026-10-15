@@ -107,7 +107,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
         <div className="border-t border-slate-700 mx-4 my-2" />
 
         <div className="mx-4 mb-3 grid gap-2">
-          <Link to="/dashboard" onClick={onNavigate} className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800">Cockpit PROGAD</Link>
+          <Link to="/dashboard" onClick={onNavigate} className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800">Tableau de Board PROGAD</Link>
           {currentUser?.accesses?.some((access) => access.module === 'impayes') && (
             <Link to="/impayes" onClick={onNavigate} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-500">Ouvrir le suivi des impayés</Link>
           )}

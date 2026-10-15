@@ -1,5 +1,6 @@
 ﻿import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useApp } from '../../lib/AppContext';
 import { ROLE_LABELS, cn } from '../utils';
 import { useAlerts } from '../hooks/useAlerts';
 import { Badge } from '../components/ui';
@@ -32,6 +33,7 @@ type AppNotification = {
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const { currentUser } = useApp();
   const navigate = useNavigate();
   const { rappels, dormants, contentieux } = useAlerts();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -86,9 +88,11 @@ export function AppLayout() {
   };
 
   const isCommercial = user?.role === 'commercial';
+  const hasInstances = currentUser?.accesses?.some((access) => access.module === 'cheques') ?? false;
+  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations') ?? false;
+  const instancesHref = hasInstances ? '/cheques' : '/cheques/consommations';
 
   const links = [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Cockpit PROGAD' },
       ...(isCommercial
     ? [
         { to: '/impayes/mes-dossiers', icon: User, label: 'Mes Dossiers' },
@@ -156,6 +160,28 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Navigation inter-modules, identique au module Suivi des Instances */}
+        <div className="border-t border-slate-800/80 px-4 py-3">
+          <div className="grid gap-2">
+            <NavLink
+              to="/dashboard"
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 transition hover:bg-slate-800 hover:text-white"
+            >
+              Tableau de Board PROGAD
+            </NavLink>
+            {(hasInstances || hasConsumptions) && (
+              <NavLink
+                to={instancesHref}
+                onClick={() => setSidebarOpen(false)}
+                className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-brand-500"
+              >
+                Ouvrir le suivi des instances
+              </NavLink>
+            )}
+          </div>
+        </div>
 
         {/* User Footer Profile */}
         <div className="p-4 border-t border-slate-800/80 bg-slate-900/50">
