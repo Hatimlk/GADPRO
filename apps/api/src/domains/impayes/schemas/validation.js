@@ -157,6 +157,7 @@ export const erpImpayesQuerySchema = z.object({
   statut: optionalTrimmedString(255),
   sort: optionalTrimmedString(50),
   order: sortOrderField(),
+  scope: z.preprocess(emptyToUndefined, z.enum(['mine']).optional().catch(undefined)),
 });
 
 export const exportQuerySchema = z.object({

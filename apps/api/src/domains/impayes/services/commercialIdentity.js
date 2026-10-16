@@ -23,6 +23,11 @@ export function normalizeCommercialIdentity(value) {
   return match?.[1] || normalized;
 }
 
+export function shouldUseCommercialScope(user, requestedScope) {
+  return user?.role === 'commercial'
+    || (user?.role === 'responsable_recouvrement' && requestedScope === 'mine');
+}
+
 export function normalizedCommercialIdentitySql(expression) {
   const normalized = `REGEXP_REPLACE(TRANSLATE(UPPER(COALESCE(${expression}, '')), 'Ç', 'C'), '[^A-Z0-9]', '', 'g')`;
   return `(CASE

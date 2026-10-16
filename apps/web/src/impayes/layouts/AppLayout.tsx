@@ -88,6 +88,7 @@ export function AppLayout() {
   };
 
   const isCommercial = user?.role === 'commercial';
+  const hasPersonalPortfolio = isCommercial || user?.role === 'responsable_recouvrement';
   const hasInstances = currentUser?.accesses?.some((access) => access.module === 'cheques') ?? false;
   const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations') ?? false;
   const instancesHref = hasInstances ? '/cheques' : '/cheques/consommations';
@@ -100,6 +101,9 @@ export function AppLayout() {
       ]
     : [
         { to: '/impayes/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        ...(hasPersonalPortfolio
+          ? [{ to: '/impayes/mes-dossiers', icon: User, label: 'Mes dossiers' }]
+          : []),
         { to: '/impayes/dossiers', icon: FileText, label: 'Dossiers' },
         { to: '/impayes/alertes', icon: Bell, label: 'Alertes', badge: alertCount },
         ...(user?.role === 'admin'

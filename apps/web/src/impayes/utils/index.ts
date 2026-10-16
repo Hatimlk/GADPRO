@@ -75,7 +75,7 @@ export function getStatutColor(statut: string): SemanticTone {
 
 export const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrateur',
-  responsable_recouvrement: 'Responsable Recouvrement',
+  responsable_recouvrement: 'Utilisateur',
   commercial: 'Commercial',
   lecture_seule: 'Lecture seule',
 };

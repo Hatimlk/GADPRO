@@ -5,7 +5,7 @@ import { ensureErpTrackingTables } from '../services/schema.js';
 import { validate, validateQuery, createActionSchema, erpImpayesQuerySchema, statutBodySchema, reaffecterBodySchema } from '../schemas/validation.js';
 import { logAudit } from '../middleware/audit.js';
 import { sendCommercialActionNotification } from '../services/mailer.js';
-import { normalizeCommercialIdentity, normalizedCommercialIdentitySql } from '../services/commercialIdentity.js';
+import { normalizeCommercialIdentity, normalizedCommercialIdentitySql, shouldUseCommercialScope } from '../services/commercialIdentity.js';
 
 const router = Router();
 router.use(authenticateToken);
@@ -42,8 +42,8 @@ async function findEffectiveCommercial(dossier) {
   return users.rows.find((user) => normalizeCommercialIdentity(user.nom) === normalizedName) || null;
 }
 
-function addCommercialScope(conditions, params, user) {
-  if (user?.role !== 'commercial') return;
+function addCommercialScope(conditions, params, user, requestedScope) {
+  if (!shouldUseCommercialScope(user, requestedScope)) return;
   params.push(user.id);
   const userIdParam = `$${params.length}`;
   params.push(normalizeCommercialIdentity(user.nom));
@@ -118,7 +118,7 @@ function buildFilters(requestQuery, user) {
     conditions.push(sql.split('?').join(`$${params.length}`));
   };
   // Un commercial ne doit voir que les dossiers qui lui sont affectés
-  addCommercialScope(conditions, params, user);
+  addCommercialScope(conditions, params, user, requestQuery.scope);
   if (requestQuery.search) add('(v.nom_tire ILIKE ? OR v.numero_valeur ILIKE ? OR v.banque ILIKE ?)', `%${requestQuery.search}%`);
   if (requestQuery.nom_tire) add('v.nom_tire = ?', requestQuery.nom_tire);
   if (requestQuery.banque) add('v.banque = ?', requestQuery.banque);
@@ -294,7 +294,7 @@ router.get('/filters', async (req, res) => {
   try {
     const conditions = ['v.actif = true'];
     const params = [];
-    addCommercialScope(conditions, params, req.user);
+    addCommercialScope(conditions, params, req.user, req.query.scope);
     const joins = `FROM erp_impayes_snapshot v
       LEFT JOIN erp_dossier_suivi s ON s.erp_voucher_id = v.erp_voucher_id
       LEFT JOIN users u ON u.id = s.commercial_id
@@ -324,9 +324,9 @@ router.get('/filters', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const isCommercial = req.user.role === 'commercial';
-    const params = isCommercial ? [req.user.id, normalizeCommercialIdentity(req.user.nom)] : [];
-    const filterClause = isCommercial
+    const usesPersonalScope = shouldUseCommercialScope(req.user, req.query.scope);
+    const params = usesPersonalScope ? [req.user.id, normalizeCommercialIdentity(req.user.nom)] : [];
+    const filterClause = usesPersonalScope
       ? `AND (s.commercial_id = $1 OR ${normalizedCommercialIdentitySql("COALESCE(NULLIF(BTRIM(u.nom), ''), v.erp_commercial_nom)")} = $2)`
       : '';
     const base = `FROM erp_impayes_snapshot v

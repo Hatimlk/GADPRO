@@ -4,6 +4,7 @@ import {
   analyzeUserMigration,
   assertMigrationCanApply,
 } from '../../../database/scripts/migrate-users-core.js';
+import { normalizeCommercialIdentity, shouldUseCommercialScope } from '../src/domains/impayes/services/commercialIdentity.js';
 
 const schemaQuery = vi.fn();
 vi.mock('../src/domains/impayes/config/db.js', () => ({ query: schemaQuery }));
@@ -35,6 +36,22 @@ describe('configuration PostgreSQL Impayés', () => {
     expect(verified.connectionString).toContain('sslmode=verify-full');
     expect(disabled).not.toHaveProperty('ssl');
     expect(verified).not.toHaveProperty('ssl');
+  });
+});
+
+describe('portefeuille commercial personnel', () => {
+  it('normalise Nabil SAFOUANE vers le commercial ERP NABIL', () => {
+    expect(normalizeCommercialIdentity('Nabil SAFOUANE')).toBe('NABIL');
+  });
+
+  it('impose toujours le périmètre personnel aux commerciaux', () => {
+    expect(shouldUseCommercialScope({ role: 'commercial' })).toBe(true);
+  });
+
+  it('autorise la vue personnelle explicite pour un utilisateur responsable', () => {
+    expect(shouldUseCommercialScope({ role: 'responsable_recouvrement' }, 'mine')).toBe(true);
+    expect(shouldUseCommercialScope({ role: 'responsable_recouvrement' })).toBe(false);
+    expect(shouldUseCommercialScope({ role: 'admin' }, 'mine')).toBe(false);
   });
 });
 

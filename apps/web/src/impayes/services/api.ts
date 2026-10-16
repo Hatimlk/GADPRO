@@ -96,12 +96,12 @@ export const api = {
   },
   getDossier: (id: string) => request<any>(`/erp/impayes/${id}`),
   getPartenaires: () => request<string[]>('/erp/partenaires'),
-  getErpFilters: () => request<{
+  getErpFilters: (params: Record<string, string> = {}) => request<{
     partenaires: string[];
     commerciaux: { id: string; nom: string }[];
     statuts: string[];
     banques: string[];
-  }>('/erp/filters'),
+  }>(`/erp/filters?${new URLSearchParams(params).toString()}`),
   getCalendrier: () => request<any[]>('/erp/calendrier'),
   createDossier: (data: any) => request<any>('/dossiers', { method: 'POST', body: JSON.stringify(data) }),
   updateDossier: (id: string, data: any) =>
@@ -119,7 +119,7 @@ export const api = {
     request<any>(`/erp/impayes/${dossierId}/actions/${actionId}`, { method: 'DELETE' }),
 
   // Stats & Alerts
-  getStats: () => request<any>('/erp/stats'),
+  getStats: (params: Record<string, string> = {}) => request<any>(`/erp/stats?${new URLSearchParams(params).toString()}`),
   getAlerts: () => request<any>('/erp/alerts'),
   getNotifications: () => request<{ notifications: any[]; unreadCount: number }>('/erp/notifications'),
   markNotificationRead: (id: string) =>

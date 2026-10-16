@@ -44,6 +44,7 @@ export default function CommercialPage() {
     try {
       setLoading(true);
       const res = await api.getDossiers({
+        scope: 'mine',
         page: String(page),
         limit: '10',
         sort: 'date_facture',
@@ -67,14 +68,14 @@ export default function CommercialPage() {
 
   useEffect(() => {
     setStatsLoading(true);
-    api.getStats()
+    api.getStats({ scope: 'mine' })
       .then(setStats)
       .catch(console.error)
       .finally(() => setStatsLoading(false));
   }, []);
 
   useEffect(() => {
-    api.getErpFilters()
+    api.getErpFilters({ scope: 'mine' })
       .then((result) => setFilterOptions({
         partenaires: result.partenaires || [],
         banques: result.banques || [],
