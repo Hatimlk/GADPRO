@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import * as XLSX from 'xlsx';
+import { logisticsQuery } from '../../../db.js';
+import { appendAssetScope, requireLogisticsPermission } from '../middleware/authorization.js';
+
+const router=Router();
+const scopedWhere=(req)=>{const params=[];const conditions=['i.deleted_at IS NULL'];appendAssetScope(req,conditions,params);return{params,where:conditions.join(' AND ')};};
+
+router.get('/maintenance',requireLogisticsPermission('reports.read'),async(req,res,next)=>{try{const{params,where}=scopedWhere(req);const[summary,monthly,categories]=await Promise.all([
+  logisticsQuery(`SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE i.maintenance_kind='preventive')::int AS preventive,COUNT(*) FILTER(WHERE i.maintenance_kind='corrective')::int AS corrective,COALESCE(SUM(i.actual_cost),0) AS actual_cost,COALESCE(SUM(i.downtime_hours),0) AS downtime_hours FROM logistics_maintenance_interventions i JOIN logistics_assets a ON a.id=i.asset_id WHERE ${where}`,params),
+  logisticsQuery(`SELECT TO_CHAR(date_trunc('month',i.reported_at),'YYYY-MM') AS month,COUNT(*)::int AS interventions,COALESCE(SUM(i.actual_cost),0) AS cost FROM logistics_maintenance_interventions i JOIN logistics_assets a ON a.id=i.asset_id WHERE ${where} AND i.reported_at>=date_trunc('month',CURRENT_DATE)-INTERVAL '11 months' GROUP BY 1 ORDER BY 1`,params),
+  logisticsQuery(`SELECT i.category,COUNT(*)::int AS interventions,COALESCE(SUM(i.actual_cost),0) AS cost FROM logistics_maintenance_interventions i JOIN logistics_assets a ON a.id=i.asset_id WHERE ${where} GROUP BY i.category ORDER BY interventions DESC`,params),
+]);res.json({summary:{...summary.rows[0],actual_cost:Number(summary.rows[0].actual_cost),downtime_hours:Number(summary.rows[0].downtime_hours)},monthly:monthly.rows.map(x=>({...x,cost:Number(x.cost)})),categories:categories.rows.map(x=>({...x,cost:Number(x.cost)}))});}catch(error){next(error);}});
+
+router.get('/maintenance/export',requireLogisticsPermission('reports.export'),async(req,res,next)=>{try{const{params,where}=scopedWhere(req);const result=await logisticsQuery(`SELECT i.reference,a.fleet_number,i.maintenance_kind,i.category,i.priority,i.status,i.reported_at,i.actual_end_at,COALESCE(p.company_name,'Interne') AS provider,COALESCE(i.actual_cost,0) AS actual_cost,COALESCE(i.downtime_hours,0) AS downtime_hours FROM logistics_maintenance_interventions i JOIN logistics_assets a ON a.id=i.asset_id LEFT JOIN logistics_service_providers p ON p.id=i.provider_id WHERE ${where} ORDER BY i.reported_at DESC`,params);const safe=(value)=>typeof value==='string'&&/^[=+\-@]/.test(value)?`'${value}`:value;const rows=result.rows.map(row=>Object.fromEntries(Object.entries(row).map(([key,value])=>[key,safe(value)])));const workbook=XLSX.utils.book_new();const sheet=XLSX.utils.json_to_sheet(rows);XLSX.utils.book_append_sheet(workbook,sheet,'Maintenance');const buffer=XLSX.write(workbook,{type:'buffer',bookType:'xlsx'});res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.setHeader('Content-Disposition',`attachment; filename="maintenance-${new Date().toISOString().slice(0,10)}.xlsx"`);res.send(buffer);}catch(error){next(error);}});
+export default router;

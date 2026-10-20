@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './lib/AppContext';
 import { Layout } from './components/layout/Layout';
 import { AuthProvider as ImpayesAuthProvider } from './impayes/contexts/AuthContext';
 import { AppLayout as ImpayesLayout } from './impayes/layouts/AppLayout';
+import { LogisticsLayout } from './logistique/layouts/LogisticsLayout';
 import { ModuleDashboard, ForbiddenPage, NotFoundPage, AdministrationPage } from './pages/PlatformPages';
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
@@ -26,6 +27,20 @@ const Commercial = lazy(() => import('./impayes/pages/CommercialPage'));
 const Alerts = lazy(() => import('./impayes/pages/AlertsPage'));
 const Derogation = lazy(() => import('./impayes/pages/DerogationPage'));
 const ImpayesAdmin = lazy(() => import('./impayes/pages/AdminPage'));
+const LogisticsDashboard = lazy(() => import('./logistique/pages/DashboardPage'));
+const LogisticsPlaceholder = lazy(() => import('./logistique/pages/PlaceholderPage'));
+const LogisticsAssets = lazy(() => import('./logistique/pages/AssetsPage'));
+const LogisticsAssetDetail = lazy(() => import('./logistique/pages/AssetDetailPage'));
+const LogisticsDrivers = lazy(() => import('./logistique/pages/DriversPage'));
+const LogisticsAssignments = lazy(() => import('./logistique/pages/AssignmentsPage'));
+const LogisticsReferences = lazy(() => import('./logistique/pages/ReferencesPage'));
+const LogisticsProviders = lazy(() => import('./logistique/pages/ProvidersPage'));
+const LogisticsInterventions = lazy(() => import('./logistique/pages/InterventionsPage'));
+const LogisticsInterventionDetail = lazy(() => import('./logistique/pages/InterventionDetailPage'));
+const LogisticsPlans = lazy(() => import('./logistique/pages/MaintenancePlansPage'));
+const LogisticsPreventive = lazy(() => import('./logistique/pages/PreventivePage'));
+const LogisticsAlerts = lazy(() => import('./logistique/pages/LogisticsAlertsPage'));
+const LogisticsReports = lazy(() => import('./logistique/pages/LogisticsReportsPage'));
 
 function Protected({ module, children }: { module?: string; children: ReactNode }) {
   const { currentUser, initialized } = useApp();
@@ -36,6 +51,7 @@ function Protected({ module, children }: { module?: string; children: ReactNode 
 }
 function ImpayesGate() { return <Protected module="impayes"><ImpayesAuthProvider><Outlet /></ImpayesAuthProvider></Protected>; }
 function ChequesGate() { return <Protected module="cheques"><Outlet /></Protected>; }
+function LogisticsGate() { return <Protected module="logistique"><Outlet /></Protected>; }
 function LegacyConsumptionBranchRedirect() {
   const { code } = useParams();
   return <Navigate to={`/cheques/consommations/branches/${encodeURIComponent(code || '')}`} replace />;
@@ -67,6 +83,32 @@ export default function App() {
       <Route path="dossiers" element={<Dossiers />} /><Route path="dossiers/:id" element={<DossierDetail />} />
       <Route path="mes-dossiers" element={<Commercial />} /><Route path="alertes" element={<Alerts />} />
       <Route path="derogation" element={<Derogation />} /><Route path="admin" element={<ImpayesAdmin />} />
+    </Route></Route>
+    <Route element={<LogisticsGate />}><Route path="/logistique" element={<LogisticsLayout />}>
+      <Route index element={<LogisticsDashboard />} />
+      <Route path="rapports" element={<LogisticsReports />} />
+      <Route path="parc" element={<LogisticsAssets group="vehicles" />} />
+      <Route path="parc/:id" element={<LogisticsAssetDetail />} />
+      <Route path="equipements" element={<LogisticsAssets group="equipment" />} />
+      <Route path="equipements/:id" element={<LogisticsAssetDetail />} />
+      <Route path="conducteurs" element={<LogisticsDrivers />} />
+      <Route path="affectations" element={<LogisticsAssignments />} />
+      <Route path="interventions" element={<LogisticsInterventions />} />
+      <Route path="interventions/:id" element={<LogisticsInterventionDetail />} />
+      <Route path="preventif" element={<LogisticsPreventive />} />
+      <Route path="plans" element={<LogisticsPlans />} />
+      <Route path="alertes" element={<LogisticsAlerts />} />
+      <Route path="carburant" element={<LogisticsPlaceholder title="Carburant" phase="Phase 2" />} />
+      <Route path="pneumatiques" element={<LogisticsPlaceholder title="Pneumatiques" phase="Phase 2" />} />
+      <Route path="pieces" element={<LogisticsPlaceholder title="Pièces de rechange" phase="Phase 2" />} />
+      <Route path="stock" element={<LogisticsPlaceholder title="Mouvements de stock" phase="Phase 2" />} />
+      <Route path="prestataires" element={<LogisticsProviders />} />
+      <Route path="devis" element={<LogisticsPlaceholder title="Demandes & devis" phase="Phase 2" />} />
+      <Route path="commandes" element={<LogisticsPlaceholder title="Bons de commande" phase="Phase 2" />} />
+      <Route path="factures" element={<LogisticsPlaceholder title="Factures & coûts" phase="Phase 2" />} />
+      <Route path="parametres" element={<LogisticsPlaceholder title="Paramètres" phase="Phase 1" />} />
+      <Route path="referentiels" element={<LogisticsReferences />} />
+      <Route path="audit" element={<LogisticsPlaceholder title="Historique & audit" phase="Phase 1" />} />
     </Route></Route>
     <Route path="/consommations" element={<Navigate to="/cheques/consommations" replace />} />
     <Route path="/impayes/consommations" element={<Navigate to="/cheques/consommations" replace />} />

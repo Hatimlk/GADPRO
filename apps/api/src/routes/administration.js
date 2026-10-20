@@ -12,10 +12,48 @@ const MODULE_ROLES = {
   cheques: ['Administrateur', 'Utilisateur'],
   impayes: ['admin', 'responsable_recouvrement', 'commercial', 'lecture_seule'],
   consommations: ['Administrateur', 'Utilisateur'],
+  logistique: ['logistics_admin', 'fleet_manager', 'maintenance_manager', 'logistics_operator', 'finance', 'read_only'],
 };
 const MODULES = Object.keys(MODULE_ROLES);
-const identitySource = (module) => module === 'consommations' ? 'cheques' : module;
-const permissionsForRole = (module, role) => {
+const identitySource = (module) => module === 'consommations' ? 'cheques' : ['cheques', 'impayes'].includes(module) ? module : null;
+const LOGISTICS_PERMISSIONS = {
+  logistics_admin: ['*'],
+  fleet_manager: [
+    'dashboard.read', 'assets.read', 'assets.create', 'assets.update', 'meters.create', 'documents.read', 'documents.create',
+    'drivers.read', 'drivers.create', 'drivers.update', 'assignments.create', 'assignments.update', 'interventions.read',
+    'interventions.create', 'interventions.update', 'interventions.validate', 'interventions.plan', 'interventions.cancel', 'interventions.close', 'plans.read', 'plans.create',
+    'plans.update', 'providers.read', 'providers.create', 'providers.update', 'quotations.read', 'quotations.create',
+    'quotations.submit', 'fuel.read', 'fuel.create', 'tires.read', 'tires.create', 'tires.update', 'tires.move', 'stock.read',
+    'costs.read', 'alerts.read', 'alerts.acknowledge', 'reports.read', 'reports.export', 'imports.create', 'settings.read',
+  ],
+  maintenance_manager: [
+    'dashboard.read', 'assets.read', 'meters.create', 'documents.read', 'interventions.read', 'interventions.create',
+    'interventions.update', 'interventions.validate', 'interventions.plan', 'interventions.execute', 'interventions.complete',
+    'interventions.close', 'interventions.cancel', 'plans.read', 'plans.create', 'plans.update', 'providers.read', 'providers.create', 'providers.update',
+    'quotations.read', 'quotations.create', 'quotations.submit', 'tires.read', 'tires.update', 'tires.move', 'stock.read',
+    'stock.receive', 'stock.issue', 'costs.read', 'costs.create', 'alerts.read', 'alerts.acknowledge', 'alerts.resolve',
+    'reports.read', 'reports.export', 'settings.read',
+  ],
+  logistics_operator: [
+    'dashboard.read', 'assets.read', 'meters.create', 'documents.read', 'drivers.read', 'assignments.create',
+    'interventions.read', 'interventions.create', 'interventions.update', 'interventions.execute', 'interventions.complete', 'providers.read',
+    'fuel.read', 'fuel.create', 'tires.read', 'tires.move', 'stock.read', 'stock.receive', 'stock.issue', 'alerts.read',
+    'alerts.acknowledge', 'reports.read',
+  ],
+  finance: [
+    'dashboard.read', 'assets.read', 'interventions.read', 'providers.read', 'providers.update', 'quotations.read',
+    'quotations.approve', 'purchase_orders.read', 'purchase_orders.create', 'purchase_orders.approve', 'invoices.read',
+    'invoices.create', 'invoices.validate', 'interventions.invoice', 'fuel.read', 'tires.read', 'stock.read', 'costs.read', 'reports.read',
+    'reports.export', 'settings.read',
+  ],
+  read_only: [
+    'dashboard.read', 'assets.read', 'documents.read', 'drivers.read', 'interventions.read', 'plans.read', 'providers.read',
+    'quotations.read', 'purchase_orders.read', 'invoices.read', 'fuel.read', 'tires.read', 'stock.read', 'alerts.read',
+    'reports.read', 'settings.read',
+  ],
+};
+export const permissionsForRole = (module, role) => {
+  if (module === 'logistique') return LOGISTICS_PERMISSIONS[role] || [];
   if ((module === 'cheques' || module === 'consommations') && role === 'Administrateur') return ['read', 'write', 'admin', '*'];
   if (module === 'impayes' && role === 'admin') return ['read', 'write', 'admin', '*'];
   if (module === 'impayes' && role === 'lecture_seule') return ['read'];
@@ -23,20 +61,27 @@ const permissionsForRole = (module, role) => {
 };
 const cleanEmail = (value) => String(value || '').trim().toLowerCase();
 
-function validateAccess(access) {
+export function validateAccess(access) {
   if (!MODULES.includes(access?.module) || !MODULE_ROLES[access.module].includes(access?.role)) return null;
-  const legacyUserId = String(access.legacyUserId || '').trim();
-  if (!legacyUserId) return null;
+  const source = identitySource(access.module);
+  const legacyUserId = source ? String(access.legacyUserId || '').trim() : null;
+  if (source && !legacyUserId) return null;
   return {
     module: access.module,
     role: access.role,
     permissions: permissionsForRole(access.module, access.role),
-    dataScope: access.module === 'impayes' && access.role === 'commercial' ? { own: true } : {},
+    dataScope: access.module === 'impayes' && access.role === 'commercial'
+      ? { own: true }
+      : access.module === 'logistique' && access.dataScope && typeof access.dataScope === 'object'
+        ? access.dataScope
+        : {},
     legacyUserId,
   };
 }
 
 async function saveAccess(client, userId, access) {
+  const source = identitySource(access.module);
+  if (!source) return;
   await client.query(
     `INSERT INTO module_access(user_id,module_code,role,permissions,data_scope,active)
      VALUES($1,$2,$3,$4,$5,true)
@@ -48,7 +93,7 @@ async function saveAccess(client, userId, access) {
     `INSERT INTO legacy_identities(central_user_id,source,legacy_user_id)
      VALUES($1,$2,$3)
      ON CONFLICT(central_user_id,source) DO UPDATE SET legacy_user_id=EXCLUDED.legacy_user_id`,
-    [userId, identitySource(access.module), access.legacyUserId],
+    [userId, source, access.legacyUserId],
   );
 }
 
@@ -60,7 +105,8 @@ router.get('/users', async (_req, res) => {
         'legacyUserId',li.legacy_user_id) ORDER BY ma.module_code)
         FROM module_access ma
         LEFT JOIN legacy_identities li ON li.central_user_id=ma.user_id
-          AND li.source=CASE WHEN ma.module_code='consommations' THEN 'cheques' ELSE ma.module_code END
+          AND li.source=CASE WHEN ma.module_code='consommations' THEN 'cheques'
+            WHEN ma.module_code IN ('cheques','impayes') THEN ma.module_code ELSE NULL END
         WHERE ma.user_id=u.id AND ma.active=true),'[]') AS accesses
     FROM users u ORDER BY u.name`);
   res.json(rows);
@@ -85,9 +131,10 @@ router.post('/users', async (req, res) => {
     return res.status(400).json({ error: 'Nom, e-mail et mot de passe (12 caractères minimum) requis.' });
   }
   if (accesses.some((access) => !access)) return res.status(400).json({ error: 'Module, rôle ou identifiant historique invalide.' });
-  const sources = new Map();
-  for (const access of accesses) {
-    const source = identitySource(access.module);
+    const sources = new Map();
+    for (const access of accesses) {
+      const source = identitySource(access.module);
+      if (!source) continue;
     if (sources.has(source) && sources.get(source) !== access.legacyUserId) {
       return res.status(400).json({ error: 'Chèques et Consommations doivent utiliser le même identifiant historique Chèques.' });
     }
@@ -158,8 +205,10 @@ router.delete('/users/:id/access/:module', async (req, res) => {
     await client.query('DELETE FROM module_access WHERE user_id=$1 AND module_code=$2', [req.params.id, req.params.module]);
     const stillUsed = source === 'cheques'
       ? await client.query(`SELECT 1 FROM module_access WHERE user_id=$1 AND module_code IN ('cheques','consommations') AND active=true`, [req.params.id])
-      : await client.query(`SELECT 1 FROM module_access WHERE user_id=$1 AND module_code='impayes' AND active=true`, [req.params.id]);
-    if (!stillUsed.rowCount) await client.query('DELETE FROM legacy_identities WHERE central_user_id=$1 AND source=$2', [req.params.id, source]);
+      : source === 'impayes'
+        ? await client.query(`SELECT 1 FROM module_access WHERE user_id=$1 AND module_code='impayes' AND active=true`, [req.params.id])
+        : { rowCount: 1 };
+    if (source && !stillUsed.rowCount) await client.query('DELETE FROM legacy_identities WHERE central_user_id=$1 AND source=$2', [req.params.id, source]);
     await client.query('UPDATE users SET session_version=session_version+1,updated_at=NOW() WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
     res.status(204).end();

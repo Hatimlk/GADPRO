@@ -63,6 +63,20 @@ describe('autorisation par module', () => {
     expect(next).toBe(false);
     expect(res.statusCode).toBe(403);
   });
+
+  it('utilise directement l’identité centrale pour Logistique sans correspondance historique', async () => {
+    centralQuery.mockResolvedValue({ rows: [{ role: 'fleet_manager', permissions: ['dashboard.read', 'assets.read'], data_scope: { siteIds: ['site-1'] }, legacy_user_id: null }] });
+    const { req, next } = await invoke(requireModule('logistique', 'assets.read'));
+    expect(next).toBe(true);
+    expect(req.user).toMatchObject({ id: 'central-1', centralId: 'central-1', role: 'fleet_manager', dataScope: { siteIds: ['site-1'] } });
+  });
+
+  it('applique une permission Logistique fine et accepte le joker administrateur', async () => {
+    centralQuery.mockResolvedValueOnce({ rows: [{ role: 'read_only', permissions: ['assets.read'], data_scope: {}, legacy_user_id: null }] });
+    expect((await invoke(requireModule('logistique', 'quotations.approve'))).res.statusCode).toBe(403);
+    centralQuery.mockResolvedValueOnce({ rows: [{ role: 'logistics_admin', permissions: ['*'], data_scope: {}, legacy_user_id: null }] });
+    expect((await invoke(requireModule('logistique', 'quotations.approve'))).next).toBe(true);
+  });
 });
 
 describe('session et CSRF', () => {

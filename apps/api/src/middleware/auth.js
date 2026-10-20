@@ -41,6 +41,7 @@ export function requirePlatformAdmin(req, res, next) {
 
 export function requireModule(moduleCode, permission = 'read') {
   return async (req, res, next) => {
+    const usesLegacyIdentity = ['cheques', 'impayes', 'consommations'].includes(moduleCode);
     const identitySource = moduleCode === 'consommations' ? 'cheques' : moduleCode;
     const result = await centralQuery(
       `SELECT ma.role,ma.permissions,ma.data_scope,li.legacy_user_id
@@ -52,12 +53,16 @@ export function requireModule(moduleCode, permission = 'read') {
     if (!access || (!access.permissions.includes('*') && !access.permissions.includes(permission))) {
       return res.status(403).json({ error: `Accès au module ${moduleCode} refusé.` });
     }
-    if (['cheques', 'impayes', 'consommations'].includes(moduleCode) && !access.legacy_user_id) {
+    if (usesLegacyIdentity && !access.legacy_user_id) {
       return res.status(403).json({ error: `Correspondance historique ${moduleCode} absente.` });
     }
     req.moduleAccess = access;
     req.user = {
-      id: ['cheques', 'consommations'].includes(moduleCode) ? Number(access.legacy_user_id) : access.legacy_user_id,
+      id: moduleCode === 'impayes'
+        ? access.legacy_user_id
+        : ['cheques', 'consommations'].includes(moduleCode)
+          ? Number(access.legacy_user_id)
+          : req.identity.id,
       email: req.identity.email,
       nom: req.identity.name,
       name: req.identity.name,

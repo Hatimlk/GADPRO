@@ -8,7 +8,8 @@ import { config } from './config.js';
 import authRoutes from './routes/auth.js';
 import administrationRoutes from './routes/administration.js';
 import { authenticate, requireCsrf, requireModule, requireModuleForRequest } from './middleware/auth.js';
-import { centralQuery } from './db.js';
+import { centralQuery, logisticsQuery } from './db.js';
+import logisticsRoutes from './domains/logistique/routes/index.js';
 import impayesDossiers from './domains/impayes/routes/dossiers.js';
 import impayesAdmin from './domains/impayes/routes/admin.js';
 import impayesExport from './domains/impayes/routes/export.js';
@@ -67,13 +68,14 @@ app.use('/api/impayes/export', ...impayesAccess, impayesExport);
 app.use('/api/impayes/erp', ...impayesAccess, impayesErp);
 app.use('/api/impayes/erp-sync', impayesErpSync);
 app.use('/api/impayes/cron', impayesCron);
+app.use('/api/logistique', authenticate, requireModule('logistique', 'dashboard.read'), logisticsRoutes);
 
 app.get('/api/health', async (_req, res) => {
   try {
-    await centralQuery('SELECT 1');
-    res.json({ status: 'ok', service: 'gadimat-api', identityDatabase: 'connected', timestamp: new Date().toISOString() });
+    await Promise.all([centralQuery('SELECT 1'), logisticsQuery('SELECT 1')]);
+    res.json({ status: 'ok', service: 'gadimat-api', identityDatabase: 'connected', logisticsDatabase: 'connected', timestamp: new Date().toISOString() });
   } catch {
-    res.status(503).json({ status: 'error', service: 'gadimat-api', identityDatabase: 'unavailable', timestamp: new Date().toISOString() });
+    res.status(503).json({ status: 'error', service: 'gadimat-api', database: 'unavailable', timestamp: new Date().toISOString() });
   }
 });
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route API introuvable.' }));

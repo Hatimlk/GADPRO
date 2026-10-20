@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Banknote, CheckCircle2, ChevronLeft, FileWarning, Grid2X2, KeyRound, LogOut, Search, Settings, ShieldCheck, ShieldX, Plus, Pencil, Power, RefreshCw, Save, UserCheck, UserCog, Users, UserX, X } from 'lucide-react';
+import { Banknote, CheckCircle2, ChevronLeft, FileWarning, Grid2X2, KeyRound, LogOut, Search, Settings, ShieldCheck, ShieldX, Plus, Pencil, Power, RefreshCw, Save, Truck, UserCheck, UserCog, Users, UserX, X } from 'lucide-react';
 import { ProgadBrand } from '../components/ProgadBrand';
 import { useApp } from '../lib/AppContext';
 import { api } from '../lib/api';
 
-type ModuleCode = 'cheques' | 'impayes' | 'consommations';
+type ModuleCode = 'cheques' | 'impayes' | 'consommations' | 'logistique';
 type Access = { module: ModuleCode; role: string; permissions: string[]; dataScope: Record<string, unknown>; legacyUserId?: string };
 type CentralUser = { id: string; name: string; email: string; active: boolean; platformAdmin: boolean; accesses: Access[] };
 type LegacyUser = { id: string; name: string; email: string; role: string; active: boolean };
@@ -22,20 +22,37 @@ const modules = {
     label: 'Suivi des impayés', href: '/impayes', icon: FileWarning,
     iconStyle: 'bg-amber-50 text-amber-600 ring-amber-100', hoverStyle: 'hover:border-amber-200 hover:bg-amber-50/30',
   },
+  logistique: {
+    label: 'Logistique & GMAO', href: '/logistique', icon: Truck,
+    iconStyle: 'bg-cyan-50 text-cyan-700 ring-cyan-100', hoverStyle: 'hover:border-cyan-200 hover:bg-cyan-50/30',
+  },
   administration: {
     label: 'Administration', href: '/administration', icon: Settings,
     iconStyle: 'bg-violet-50 text-violet-600 ring-violet-100', hoverStyle: 'hover:border-violet-200 hover:bg-violet-50/30',
   },
 };
 
-const accessConfig: Record<ModuleCode, { label: string; source: keyof LegacyOptions; roles: string[] }> = {
+const accessConfig: Record<ModuleCode, { label: string; source?: keyof LegacyOptions; roles: string[] }> = {
   cheques: { label: 'Suivi des Instances', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
   impayes: { label: 'Suivi des impayés', source: 'impayes', roles: ['commercial', 'responsable_recouvrement', 'lecture_seule', 'admin'] },
   consommations: { label: 'Consommations', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
+  logistique: {
+    label: 'Logistique & GMAO',
+    roles: ['logistics_admin', 'fleet_manager', 'maintenance_manager', 'logistics_operator', 'finance', 'read_only'],
+  },
 };
 
-const roleLabel = (module: ModuleCode, role: string) =>
-  module === 'impayes' && role === 'responsable_recouvrement' ? 'Utilisateur' : role;
+const logisticsRoleLabels: Record<string, string> = {
+  logistics_admin: 'Administrateur Logistique',
+  fleet_manager: 'Gestionnaire de parc',
+  maintenance_manager: 'Responsable maintenance',
+  logistics_operator: 'Opérateur logistique',
+  finance: 'Finance',
+  read_only: 'Lecture seule',
+};
+const roleLabel = (module: ModuleCode, role: string) => module === 'logistique'
+  ? logisticsRoleLabels[role] || role
+  : module === 'impayes' && role === 'responsable_recouvrement' ? 'Utilisateur' : role;
 
 const blankDraft = (): UserDraft => ({
   name: '', email: '', password: '', platformAdmin: false,
@@ -43,6 +60,7 @@ const blankDraft = (): UserDraft => ({
     cheques: { enabled: false, role: 'Utilisateur', legacyUserId: '' },
     impayes: { enabled: false, role: 'commercial', legacyUserId: '' },
     consommations: { enabled: false, role: 'Utilisateur', legacyUserId: '' },
+    logistique: { enabled: false, role: 'read_only', legacyUserId: '' },
   },
 });
 
@@ -141,7 +159,7 @@ export function AdministrationPage() {
     const accesses = (Object.entries(draft.accesses) as [ModuleCode, AccessDraft][])
       .filter(([, access]) => access.enabled)
       .map(([module, access]) => ({ module, role: access.role, legacyUserId: access.legacyUserId }));
-    if (accesses.some((access) => !access.legacyUserId)) { setError('Sélectionnez un identifiant historique pour chaque module activé.'); return; }
+    if (accesses.some((access) => access.module !== 'logistique' && !access.legacyUserId)) { setError('Sélectionnez un identifiant historique pour chaque module historique activé.'); return; }
     const chequesIds = accesses.filter((access) => access.module === 'cheques' || access.module === 'consommations').map((access) => access.legacyUserId);
     if (new Set(chequesIds).size > 1) { setError('Suivi des Instances et Consommations doivent correspondre au même utilisateur historique Chèques.'); return; }
     setSaving(true); setError(''); setSuccess('');
@@ -153,7 +171,7 @@ export function AdministrationPage() {
         const original = users.find((user) => user.id === draft.id);
         for (const module of Object.keys(accessConfig) as ModuleCode[]) {
           const access = draft.accesses[module];
-          if (access.enabled) await api.put(`/administration/users/${draft.id}/access/${module}`, { role: access.role, legacyUserId: access.legacyUserId });
+          if (access.enabled) await api.put(`/administration/users/${draft.id}/access/${module}`, { role: access.role, ...(module === 'logistique' ? {} : { legacyUserId: access.legacyUserId }) });
           else if (original?.accesses.some((item) => item.module === module)) await api.delete(`/administration/users/${draft.id}/access/${module}`);
         }
       }
@@ -226,7 +244,25 @@ function UserEditor({ draft, setDraft, legacy, saving, error, close, save }: { d
 
       <label className={`mt-5 flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-4 transition ${draft.platformAdmin ? 'border-violet-200 bg-violet-50' : 'border-slate-200 bg-slate-50'}`}><div className="flex items-center gap-3"><span className={`grid h-9 w-9 place-items-center rounded-xl ${draft.platformAdmin ? 'bg-violet-600 text-white' : 'bg-white text-slate-400'}`}><ShieldCheck className="h-4 w-4" /></span><div><p className="text-xs font-black text-slate-900">Administrateur de la plateforme</p><p className="mt-0.5 text-[10px] text-slate-500">Autorise la gestion des comptes et habilitations, sans accorder les modules métier.</p></div></div><input type="checkbox" className="h-4 w-4 accent-violet-600" checked={draft.platformAdmin} onChange={(event) => setDraft({ ...draft, platformAdmin: event.target.checked })} /></label>
 
-      <section className="mt-7 border-t border-slate-100 pt-6"><div className="mb-4 flex items-center justify-between gap-4"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-50 text-blue-600"><Grid2X2 className="h-3.5 w-3.5" /></span><div><h3 className="text-sm font-black text-slate-900">Habilitations métier</h3><p className="text-[11px] text-slate-400">Module, rôle et correspondance historique</p></div></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">{enabledCount} actif{enabledCount > 1 ? 's' : ''}</span></div><div className="grid gap-3">{modules.map(([module, config]) => { const access = draft.accesses[module]; const options = legacy[config.source]; return <section key={module} className={`rounded-xl border p-4 transition ${access.enabled ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 bg-white'}`}><label className="flex cursor-pointer items-center justify-between gap-4"><div><p className="text-xs font-black text-slate-900">{config.label}</p><p className="mt-0.5 text-[10px] text-slate-400">{access.enabled ? 'Accès activé pour ce collaborateur' : 'Aucun accès à ce module'}</p></div><input type="checkbox" className="h-4 w-4 accent-blue-600" checked={access.enabled} onChange={(event) => setAccess(module, { enabled: event.target.checked })} /></label>{access.enabled && <div className="mt-4 grid gap-3 border-t border-blue-100 pt-4 sm:grid-cols-2"><label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Rôle dans le module<select className="field mt-1.5 w-full normal-case tracking-normal" value={access.role} onChange={(event) => setAccess(module, { role: event.target.value })}>{config.roles.map((role) => <option key={role} value={role}>{roleLabel(module, role)}</option>)}</select></label><label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Identité historique<select required className="field mt-1.5 w-full normal-case tracking-normal" value={access.legacyUserId} onChange={(event) => setAccess(module, { legacyUserId: event.target.value })}><option value="">Sélectionner une identité…</option>{access.legacyUserId && !options.some((item) => item.id === access.legacyUserId) && <option value={access.legacyUserId}>ID {access.legacyUserId} (actuel)</option>}{options.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.email} · {roleLabel(module, item.role)}{item.active ? '' : ' · inactif'}</option>)}</select></label></div>}</section>; })}</div></section>
+      <section className="mt-7 border-t border-slate-100 pt-6">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-50 text-blue-600"><Grid2X2 className="h-3.5 w-3.5" /></span><div><h3 className="text-sm font-black text-slate-900">Habilitations métier</h3><p className="text-[11px] text-slate-400">Module, rôle et identité centrale ou historique</p></div></div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">{enabledCount} actif{enabledCount > 1 ? 's' : ''}</span>
+        </div>
+        <div className="grid gap-3">{modules.map(([module, config]) => {
+          const access = draft.accesses[module];
+          const options = config.source ? legacy[config.source] : [];
+          return <section key={module} className={`rounded-xl border p-4 transition ${access.enabled ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 bg-white'}`}>
+            <label className="flex cursor-pointer items-center justify-between gap-4"><div><p className="text-xs font-black text-slate-900">{config.label}</p><p className="mt-0.5 text-[10px] text-slate-400">{access.enabled ? 'Accès activé pour ce collaborateur' : 'Aucun accès à ce module'}</p></div><input type="checkbox" className="h-4 w-4 accent-blue-600" checked={access.enabled} onChange={(event) => setAccess(module, { enabled: event.target.checked })} /></label>
+            {access.enabled && <div className="mt-4 grid gap-3 border-t border-blue-100 pt-4 sm:grid-cols-2">
+              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Rôle dans le module<select className="field mt-1.5 w-full normal-case tracking-normal" value={access.role} onChange={(event) => setAccess(module, { role: event.target.value })}>{config.roles.map((role) => <option key={role} value={role}>{roleLabel(module, role)}</option>)}</select></label>
+              {config.source
+                ? <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Identité historique<select required className="field mt-1.5 w-full normal-case tracking-normal" value={access.legacyUserId} onChange={(event) => setAccess(module, { legacyUserId: event.target.value })}><option value="">Sélectionner une identité…</option>{access.legacyUserId && !options.some((item) => item.id === access.legacyUserId) && <option value={access.legacyUserId}>ID {access.legacyUserId} (actuel)</option>}{options.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.email} · {roleLabel(module, item.role)}{item.active ? '' : ' · inactif'}</option>)}</select></label>
+                : <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">Identité PROGAD centrale utilisée automatiquement.</div>}
+            </div>}
+          </section>;
+        })}</div>
+      </section>
     </div><footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-7"><p className="hidden text-[10px] text-slate-400 sm:block">Les modifications prennent effet à la prochaine vérification de session.</p><div className="ml-auto flex gap-2"><button type="button" onClick={close} className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 transition hover:bg-slate-100">Annuler</button><button disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white shadow-lg shadow-blue-600/15 transition hover:bg-blue-700 disabled:cursor-wait disabled:bg-blue-300"><Save className="h-4 w-4" />{saving ? 'Enregistrement…' : draft.id ? 'Enregistrer les modifications' : 'Créer le compte'}</button></div></footer>
   </form></div>;
 }
