@@ -34,4 +34,6 @@ Arrêt de l’application : `npm run local:stop`. Arrêt des bases Docker : `npm
 
 Voir [l’architecture](docs/ARCHITECTURE.md), la [migration](docs/MIGRATION.md), la [validation](docs/VALIDATION.md) et le [déploiement](docs/DEPLOYMENT.md). La migration des utilisateurs reste en dry-run sauf si les options explicites `--apply --confirm-user-migration` sont fournies.
 
-Pour le domaine Logistique & GMAO, voir l’[architecture cible](docs/LOGISTIQUE_GMAO_ARCHITECTURE.md), la [phase 1A — parc](docs/LOGISTIQUE_GMAO_PHASE1A.md), la [phase 1B — maintenance et prestataires](docs/LOGISTIQUE_GMAO_PHASE1B.md) et la [phase 1C — préventif et pilotage](docs/LOGISTIQUE_GMAO_PHASE1C.md).
+Pour le domaine Logistique & GMAO, voir l’[architecture cible](docs/LOGISTIQUE_GMAO_ARCHITECTURE.md), la [phase 1A — parc](docs/LOGISTIQUE_GMAO_PHASE1A.md), la [phase 1B — maintenance et prestataires](docs/LOGISTIQUE_GMAO_PHASE1B.md), la [phase 1C — préventif et pilotage](docs/LOGISTIQUE_GMAO_PHASE1C.md), la [phase 2A — carburant et pneumatiques](docs/LOGISTIQUE_GMAO_PHASE2A.md) et la [phase 2B — pièces et stock](docs/LOGISTIQUE_GMAO_PHASE2B.md).
+Documentation complémentaire : [phase 2C — achats et facturation](docs/LOGISTIQUE_GMAO_PHASE2C.md).
+Voir également la [phase 2D — documents et notifications](docs/LOGISTIQUE_GMAO_PHASE2D.md).

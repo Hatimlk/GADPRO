@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, CircleDollarSign, Database, KeyRound, MapPinned, RefreshCw, Shapes, ShieldCheck, Truck, Wrench } from 'lucide-react';
+import { Activity, CircleDollarSign, Database, FileText, KeyRound, MapPinned, RefreshCw, Shapes, ShieldCheck, Truck, Wrench } from 'lucide-react';
 import { logisticsApi } from '../services/api';
 
 type Bootstrap = {
@@ -7,7 +7,7 @@ type Bootstrap = {
   permissions: string[];
   dataScope: Record<string, unknown>;
   foundation: { sites: number; assetCategories: number; schemaVersion: string | null; migratedAt: string | null };
-  kpis: { assetsTotal: number; assetsAvailable: number; assetsUnavailable: number; openInterventions: number; criticalInterventions: number; monthlyMaintenanceCost: number; overdueMaintenance: number; openAlerts: number };
+  kpis: { assetsTotal: number; assetsAvailable: number; assetsUnavailable: number; openInterventions: number; criticalInterventions: number; monthlyMaintenanceCost: number; overdueMaintenance: number; openAlerts: number; monthlyFuelCost: number; openFuelAnomalies: number; installedTires: number; lowStockParts: number; inventoryValue: number; pendingProcurementApprovals:number; monthlyInvoicedCost:number };
 };
 
 const roleLabels: Record<string, string> = {
@@ -42,6 +42,13 @@ export default function DashboardPage() {
         <FoundationCard icon={CircleDollarSign} label="Coût maintenance du mois" value={`${data.kpis.monthlyMaintenanceCost.toLocaleString('fr-FR')} DH`} />
         <FoundationCard icon={Wrench} label="Préventifs en retard" value={String(data.kpis.overdueMaintenance)} />
         <FoundationCard icon={Activity} label="Alertes ouvertes" value={String(data.kpis.openAlerts)} />
+        <FoundationCard icon={CircleDollarSign} label="Carburant du mois" value={`${data.kpis.monthlyFuelCost.toLocaleString('fr-FR')} DH`} />
+        <FoundationCard icon={Activity} label="Signaux carburant" value={String(data.kpis.openFuelAnomalies)} />
+        <FoundationCard icon={Truck} label="Pneus installés" value={String(data.kpis.installedTires)} />
+        <FoundationCard icon={Shapes} label="Pièces en stock bas" value={String(data.kpis.lowStockParts)} />
+        <FoundationCard icon={CircleDollarSign} label="Valeur du stock" value={`${data.kpis.inventoryValue.toLocaleString('fr-FR')} DH`} />
+        <FoundationCard icon={FileText} label="Approbations achats en attente" value={String(data.kpis.pendingProcurementApprovals)} />
+        <FoundationCard icon={CircleDollarSign} label="Factures validées du mois" value={`${data.kpis.monthlyInvoicedCost.toLocaleString('fr-FR')} DH`} />
       </section>
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="État de la fondation">
         <FoundationCard icon={Database} label="Version du schéma" value={data.foundation.schemaVersion || '—'} />

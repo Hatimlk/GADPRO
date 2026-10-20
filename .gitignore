@@ -8,4 +8,5 @@ coverage/
 *.log
 *.xlsx
 backups/
+data/logistics-documents/
 .DS_Store

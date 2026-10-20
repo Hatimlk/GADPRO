@@ -6,6 +6,8 @@ import {
   ShieldCheck, Truck, UserRound, UsersRound, Warehouse, Wrench, X,
 } from 'lucide-react';
 import { useApp } from '../../lib/AppContext';
+import { logisticsApi } from '../services/api';
+import type { LogisticsNotification } from '../types';
 
 type NavItem = { to: string; label: string; icon: ComponentType<{ className?: string }>; permission: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -57,6 +59,9 @@ export function LogisticsLayout() {
   const navigate = useNavigate();
   const access = currentUser?.accesses?.find((item) => item.module === 'logistique');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationsOpen,setNotificationsOpen]=useState(false);
+  const [notifications,setNotifications]=useState<LogisticsNotification[]>([]);
+  const [unreadCount,setUnreadCount]=useState(0);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => Object.fromEntries(groups.map((group) => [group.label, true])));
   const permissions = access?.permissions || [];
   const can = (permission: string) => permissions.includes('*') || permissions.includes(permission);
@@ -67,6 +72,11 @@ export function LogisticsLayout() {
     document.title = 'Logistique & GMAO · PROGAD';
     return () => { document.title = 'PROGAD · ERP interne GADIMAT'; };
   }, []);
+
+  const loadNotifications=async()=>{try{const result=await logisticsApi.get<{data:LogisticsNotification[];unreadCount:number}>('/notifications?limit=30');setNotifications(result.data);setUnreadCount(result.unreadCount);}catch{/* Le centre ne doit pas bloquer la navigation. */}};
+  useEffect(()=>{void Promise.all([logisticsApi.post('/notifications/sync-alerts',{}),logisticsApi.post('/notifications/sync-approvals',{})]).catch(()=>undefined).then(loadNotifications);const timer=window.setInterval(()=>void loadNotifications(),30000);return()=>window.clearInterval(timer);},[]);
+  const openNotification=async(item:LogisticsNotification)=>{if(item.status==='unread'){await logisticsApi.patch(`/notifications/${item.id}/read`,{}).catch(()=>undefined);setUnreadCount(value=>Math.max(0,value-1));setNotifications(values=>values.map(value=>value.id===item.id?{...value,status:'read'}:value));}setNotificationsOpen(false);if(item.action_url)navigate(item.action_url);};
+  const readAll=async()=>{await logisticsApi.patch('/notifications/actions/read-all',{});setUnreadCount(0);setNotifications(values=>values.map(value=>({...value,status:'read'})));};
 
   const handleLogout = async () => { await logout(); navigate('/login'); };
 
@@ -91,7 +101,7 @@ export function LogisticsLayout() {
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
         <div className="flex items-center gap-3"><button type="button" onClick={() => setSidebarOpen(true)} aria-label="Ouvrir la navigation" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 lg:hidden"><Menu className="h-5 w-5" /></button><div><p className="text-sm font-black text-slate-900">Logistique & GMAO</p><p className="hidden text-[11px] text-slate-500 sm:block">Parc, maintenance et coûts opérationnels</p></div></div>
-        <div className="flex items-center gap-2"><span className="hidden items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700 sm:flex"><ShieldCheck className="h-4 w-4" /> Session sécurisée</span><button type="button" disabled title="Notifications disponibles en phase 2" className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-400 disabled:cursor-not-allowed"><Bell className="h-4 w-4" /></button></div>
+        <div className="relative flex items-center gap-2"><span className="hidden items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700 sm:flex"><ShieldCheck className="h-4 w-4" /> Session sécurisée</span><button type="button" onClick={()=>{setNotificationsOpen(value=>!value);void loadNotifications();}} title="Notifications" aria-label={`${unreadCount} notification(s) non lue(s)`} className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600"><Bell className="h-4 w-4" />{unreadCount>0&&<span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-600 px-1 text-[10px] font-black leading-5 text-white">{unreadCount>99?'99+':unreadCount}</span>}</button>{notificationsOpen&&<><button aria-label="Fermer" className="fixed inset-0 z-40" onClick={()=>setNotificationsOpen(false)}/><div className="absolute right-0 top-12 z-50 w-[min(92vw,390px)] overflow-hidden rounded-2xl border bg-white shadow-2xl"><div className="flex items-center justify-between border-b p-4"><div><p className="text-sm font-black">Notifications</p><p className="text-[11px] text-slate-500">{unreadCount} non lue(s)</p></div>{unreadCount>0&&<button onClick={()=>void readAll()} className="text-xs font-bold text-blue-600">Tout marquer comme lu</button>}</div><div className="max-h-[420px] overflow-y-auto">{notifications.length===0?<p className="p-8 text-center text-sm text-slate-500">Aucune notification.</p>:notifications.map(item=><button key={item.id} onClick={()=>void openNotification(item)} className={`block w-full border-b p-4 text-left hover:bg-slate-50 ${item.status==='unread'?'bg-blue-50/50':''}`}><div className="flex gap-3"><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.severity==='critical'?'bg-red-500':item.severity==='warning'?'bg-amber-500':'bg-blue-500'}`}/><div><p className="text-sm font-bold">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-600">{item.message}</p><p className="mt-1.5 text-[10px] text-slate-400">{new Date(item.created_at).toLocaleString('fr-FR')}</p></div></div></button>)}</div></div></>}</div>
       </header>
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"><Outlet /></main>
     </div>

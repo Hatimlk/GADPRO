@@ -65,6 +65,10 @@ services:
       - ./database/migrations/logistique/002_fleet_and_drivers.sql:/docker-entrypoint-initdb.d/002_fleet_and_drivers.sql:ro
       - ./database/migrations/logistique/003_providers_and_interventions.sql:/docker-entrypoint-initdb.d/003_providers_and_interventions.sql:ro
       - ./database/migrations/logistique/004_preventive_maintenance.sql:/docker-entrypoint-initdb.d/004_preventive_maintenance.sql:ro
+      - ./database/migrations/logistique/005_fuel_and_tires.sql:/docker-entrypoint-initdb.d/005_fuel_and_tires.sql:ro
+      - ./database/migrations/logistique/006_spare_parts_and_stock.sql:/docker-entrypoint-initdb.d/006_spare_parts_and_stock.sql:ro
+      - ./database/migrations/logistique/007_procurement_workflow.sql:/docker-entrypoint-initdb.d/007_procurement_workflow.sql:ro
+      - ./database/migrations/logistique/008_documents_and_notifications.sql:/docker-entrypoint-initdb.d/008_documents_and_notifications.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gadimat -d gadimat_logistique"]
       interval: 3s

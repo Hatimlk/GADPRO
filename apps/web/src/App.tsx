@@ -41,6 +41,13 @@ const LogisticsPlans = lazy(() => import('./logistique/pages/MaintenancePlansPag
 const LogisticsPreventive = lazy(() => import('./logistique/pages/PreventivePage'));
 const LogisticsAlerts = lazy(() => import('./logistique/pages/LogisticsAlertsPage'));
 const LogisticsReports = lazy(() => import('./logistique/pages/LogisticsReportsPage'));
+const LogisticsFuel = lazy(() => import('./logistique/pages/FuelPage'));
+const LogisticsTires = lazy(() => import('./logistique/pages/TiresPage'));
+const LogisticsSpareParts = lazy(() => import('./logistique/pages/SparePartsPage'));
+const LogisticsStock = lazy(() => import('./logistique/pages/StockPage'));
+const LogisticsQuotations = lazy(() => import('./logistique/pages/QuotationsPage'));
+const LogisticsPurchaseOrders = lazy(() => import('./logistique/pages/PurchaseOrdersPage'));
+const LogisticsInvoices = lazy(() => import('./logistique/pages/InvoicesPage'));
 
 function Protected({ module, children }: { module?: string; children: ReactNode }) {
   const { currentUser, initialized } = useApp();
@@ -98,14 +105,14 @@ export default function App() {
       <Route path="preventif" element={<LogisticsPreventive />} />
       <Route path="plans" element={<LogisticsPlans />} />
       <Route path="alertes" element={<LogisticsAlerts />} />
-      <Route path="carburant" element={<LogisticsPlaceholder title="Carburant" phase="Phase 2" />} />
-      <Route path="pneumatiques" element={<LogisticsPlaceholder title="Pneumatiques" phase="Phase 2" />} />
-      <Route path="pieces" element={<LogisticsPlaceholder title="Pièces de rechange" phase="Phase 2" />} />
-      <Route path="stock" element={<LogisticsPlaceholder title="Mouvements de stock" phase="Phase 2" />} />
+      <Route path="carburant" element={<LogisticsFuel />} />
+      <Route path="pneumatiques" element={<LogisticsTires />} />
+      <Route path="pieces" element={<LogisticsSpareParts />} />
+      <Route path="stock" element={<LogisticsStock />} />
       <Route path="prestataires" element={<LogisticsProviders />} />
-      <Route path="devis" element={<LogisticsPlaceholder title="Demandes & devis" phase="Phase 2" />} />
-      <Route path="commandes" element={<LogisticsPlaceholder title="Bons de commande" phase="Phase 2" />} />
-      <Route path="factures" element={<LogisticsPlaceholder title="Factures & coûts" phase="Phase 2" />} />
+      <Route path="devis" element={<LogisticsQuotations />} />
+      <Route path="commandes" element={<LogisticsPurchaseOrders />} />
+      <Route path="factures" element={<LogisticsInvoices />} />
       <Route path="parametres" element={<LogisticsPlaceholder title="Paramètres" phase="Phase 1" />} />
       <Route path="referentiels" element={<LogisticsReferences />} />
       <Route path="audit" element={<LogisticsPlaceholder title="Historique & audit" phase="Phase 1" />} />

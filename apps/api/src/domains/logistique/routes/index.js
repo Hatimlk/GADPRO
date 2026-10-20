@@ -11,6 +11,15 @@ import maintenancePlans from './maintenancePlans.js';
 import maintenanceDue from './maintenanceDue.js';
 import alerts from './alerts.js';
 import reports from './reports.js';
+import fuel from './fuel.js';
+import tires from './tires.js';
+import spareParts from './spareParts.js';
+import stock from './stock.js';
+import quotations from './quotations.js';
+import purchaseOrders from './purchaseOrders.js';
+import invoices from './invoices.js';
+import documents from './documents.js';
+import notifications from './notifications.js';
 
 const router = Router();
 
@@ -25,8 +34,11 @@ router.get('/bootstrap', requireLogisticsPermission('dashboard.read'), async (re
     const preventiveConditions = [];
     const preventiveParams = [];
     appendAssetScope(req, preventiveConditions, preventiveParams);
+    const operationsConditions = [];
+    const operationsParams = [];
+    appendAssetScope(req, operationsConditions, operationsParams);
 
-    const [sites, categories, migration, assetKpis, interventionKpis, preventiveKpis] = await Promise.all([
+    const [sites, categories, migration, assetKpis, interventionKpis, preventiveKpis, fuelKpis, tireKpis, stockKpis, procurementKpis] = await Promise.all([
       logisticsQuery('SELECT COUNT(*)::int AS count FROM logistics_sites WHERE active=true AND deleted_at IS NULL'),
       logisticsQuery('SELECT COUNT(*)::int AS count FROM logistics_asset_categories WHERE active=true AND deleted_at IS NULL'),
       logisticsQuery('SELECT version,applied_at FROM schema_migrations ORDER BY version DESC LIMIT 1'),
@@ -49,6 +61,18 @@ router.get('/bootstrap', requireLogisticsPermission('dashboard.read'), async (re
         LEFT JOIN logistics_maintenance_due_events de ON de.asset_id=a.id
         LEFT JOIN logistics_alerts al ON al.asset_id=a.id
         ${preventiveConditions.length ? `WHERE ${preventiveConditions.join(' AND ')}` : ''}`, preventiveParams),
+      logisticsQuery(`SELECT
+        (SELECT COALESCE(SUM(ft.total_amount),0) FROM logistics_fuel_transactions ft JOIN logistics_assets a ON a.id=ft.asset_id WHERE ft.occurred_at>=date_trunc('month',CURRENT_DATE)${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''}) AS monthly_cost,
+        (SELECT COUNT(*)::int FROM logistics_fuel_anomalies fa JOIN logistics_fuel_transactions ft ON ft.id=fa.transaction_id JOIN logistics_assets a ON a.id=ft.asset_id WHERE fa.status='open'${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''}) AS open_anomalies`, operationsParams),
+      logisticsQuery(`SELECT COUNT(*)::int AS installed FROM logistics_tires t JOIN logistics_assets a ON a.id=t.current_asset_id
+        WHERE t.status='installed' AND t.deleted_at IS NULL${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''}`, operationsParams),
+      logisticsQuery(`SELECT COUNT(*) FILTER(WHERE quantity_on_hand<=minimum_quantity)::int AS low_stock,
+        COALESCE(SUM(quantity_on_hand*average_cost),0) AS inventory_value FROM logistics_spare_parts WHERE status='active' AND deleted_at IS NULL`),
+      logisticsQuery(`SELECT
+        (SELECT COUNT(*) FROM logistics_quotations q JOIN logistics_maintenance_interventions i ON i.id=q.intervention_id JOIN logistics_assets a ON a.id=i.asset_id WHERE q.status='pending_approval'${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''})
+        +(SELECT COUNT(*) FROM logistics_purchase_orders po JOIN logistics_maintenance_interventions i ON i.id=po.intervention_id JOIN logistics_assets a ON a.id=i.asset_id WHERE po.status='pending_approval'${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''})
+        +(SELECT COUNT(*) FROM logistics_invoices inv JOIN logistics_maintenance_interventions i ON i.id=inv.intervention_id JOIN logistics_assets a ON a.id=i.asset_id WHERE inv.status='pending_validation'${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''}) AS pending_approvals,
+        (SELECT COALESCE(SUM(inv.total_amount),0) FROM logistics_invoices inv JOIN logistics_maintenance_interventions i ON i.id=inv.intervention_id JOIN logistics_assets a ON a.id=i.asset_id WHERE inv.status='validated' AND inv.validated_at>=date_trunc('month',CURRENT_DATE)${operationsConditions.length ? ` AND ${operationsConditions.join(' AND ')}` : ''}) AS monthly_invoiced_cost`,operationsParams),
     ]);
     res.json({
       module: 'logistique',
@@ -70,6 +94,13 @@ router.get('/bootstrap', requireLogisticsPermission('dashboard.read'), async (re
         monthlyMaintenanceCost: Number(interventionKpis.rows[0].monthly_cost),
         overdueMaintenance: preventiveKpis.rows[0].overdue,
         openAlerts: preventiveKpis.rows[0].open_alerts,
+        monthlyFuelCost: Number(fuelKpis.rows[0].monthly_cost),
+        openFuelAnomalies: fuelKpis.rows[0].open_anomalies,
+        installedTires: tireKpis.rows[0].installed,
+        lowStockParts: stockKpis.rows[0].low_stock,
+        inventoryValue: Number(stockKpis.rows[0].inventory_value),
+        pendingProcurementApprovals: Number(procurementKpis.rows[0].pending_approvals),
+        monthlyInvoicedCost: Number(procurementKpis.rows[0].monthly_invoiced_cost),
       },
     });
   } catch (error) {
@@ -103,5 +134,14 @@ router.use('/maintenance-plans', maintenancePlans);
 router.use('/maintenance-due', maintenanceDue);
 router.use('/alerts', alerts);
 router.use('/reports', reports);
+router.use('/fuel', fuel);
+router.use('/tires', tires);
+router.use('/spare-parts', spareParts);
+router.use('/stock-movements', stock);
+router.use('/quotations', quotations);
+router.use('/purchase-orders', purchaseOrders);
+router.use('/invoices', invoices);
+router.use('/documents', documents);
+router.use('/notifications', notifications);
 
 export default router;
