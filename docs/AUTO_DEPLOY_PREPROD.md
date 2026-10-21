@@ -27,6 +27,15 @@ npm run migrate:logistics
 
 Le rôle de l'URL doit posséder les droits sur cette base dédiée. Ne pas utiliser les identifiants SQL d'Open-Prod. Vérifier ensuite que la table `schema_migrations` contient la dernière migration livrée.
 
+Pour charger volontairement les données synthétiques de démonstration sur la préproduction, après migration et depuis la release active :
+
+```bash
+cd /var/www/gadpro-preprod/app
+LOGISTICS_DEMO_SEED_TARGET=preprod.gadimat.pro npm run seed:logistics:demo
+```
+
+Le script est idempotent, ne supprime aucune donnée et refuse toute cible autre que `preprod.gadimat.pro` ou toute base dont le nom n'est pas `gadimat_logistique`. Les enregistrements de démonstration portent des identifiants ou références préfixés par `DEMO-` afin de rester reconnaissables.
+
 Le répertoire `app` devient un lien vers une release initiale. Les chemins Nginx, service API et service de rappels restent identiques. Le `.env` est déplacé vers `shared/.env` avec le mode 600, et chaque release utilise un lien vers ce fichier. `shared` n'est pas servi par Nginx. Le service de sauvegarde ne change pas.
 
 Créer une clé dédiée (ne pas écraser un fichier déjà existant) :
