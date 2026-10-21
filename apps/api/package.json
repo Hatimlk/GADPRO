@@ -7,9 +7,9 @@
     "dev": "node --env-file=../../.env --watch src/server.js",
     "start": "node --env-file=../../.env src/server.js",
     "test": "vitest run",
-    "migrate:central": "node src/scripts/migrate-central.js",
-    "migrate:logistics": "node src/scripts/migrate-logistics.js",
-    "migrate:users": "node ../../database/scripts/migrate-users.js"
+    "migrate:central": "node --env-file=../../.env src/scripts/migrate-central.js",
+    "migrate:logistics": "node --env-file=../../.env src/scripts/migrate-logistics.js",
+    "migrate:users": "node --env-file=../../.env ../../database/scripts/migrate-users.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
