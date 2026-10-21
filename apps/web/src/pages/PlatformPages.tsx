@@ -96,16 +96,14 @@ export function ModuleDashboard() {
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-blue-50"><Sparkles className="h-3.5 w-3.5 text-cyan-300" /> Espace de travail PROGAD</div>
           <p className="mt-6 text-xs font-medium capitalize text-blue-100">{today}</p>
           <h1 id="dashboard-title" className="mt-2 text-[2rem] font-black tracking-[-0.04em] sm:text-4xl lg:text-5xl">Bonjour {firstName} <span className="inline-block origin-bottom-right animate-[wave_1.8s_ease-in-out_1]" aria-hidden="true">👋</span></h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100 sm:text-base">Retrouvez vos outils métier et poursuivez vos opérations depuis un point d’entrée unique.</p>
           <div className="mt-7 flex flex-wrap gap-3 text-xs font-semibold">
-            <span className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-inset ring-white/10"><Activity className="h-4 w-4 text-emerald-300" /><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" /> Services opérationnels</span>
             <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-inset ring-white/10">{allowed.length} espace{allowed.length > 1 ? 's' : ''} accessible{allowed.length > 1 ? 's' : ''}</span>
           </div>
         </div>
       </section>
 
       <section className="mt-9 sm:mt-11" aria-label="Applications">
-        <div className="mb-5 flex items-end justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Applications métier</p><h2 className="mt-1 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Où souhaitez-vous travailler ?</h2></div><span className="hidden text-xs font-medium text-slate-400 sm:block">Sélectionnez un espace pour continuer</span></div>
+        <div className="mb-5 flex items-end justify-between gap-4"><span className="hidden text-xs font-medium text-slate-400 sm:block">Sélectionnez un espace pour continuer</span></div>
         {allowed.length ? <div className="grid gap-4 md:grid-cols-3 lg:gap-5">
           {allowed.map(([code, item], index) => <ApplicationTile key={code} item={item} index={index} />)}
         </div> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
@@ -124,7 +122,6 @@ function ApplicationTile({ item, index }: { item: (typeof modules)[keyof typeof 
       <p className="mt-6 text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{item.eyebrow}</p>
       <h3 className="mt-2 text-lg font-black leading-snug tracking-tight text-slate-950">{item.label}</h3>
       <p className="mt-2 text-xs leading-5 text-slate-500">{item.description}</p>
-      <span className="mt-auto inline-flex items-center gap-2 pt-6 text-xs font-black text-slate-800">Ouvrir l’espace <ArrowUpRight className="h-4 w-4 transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></span>
     </div>
   </Link>;
 }
