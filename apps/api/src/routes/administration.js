@@ -11,11 +11,10 @@ router.use(authenticate, requirePlatformAdmin);
 const MODULE_ROLES = {
   cheques: ['Administrateur', 'Utilisateur'],
   impayes: ['admin', 'responsable_recouvrement', 'commercial', 'lecture_seule'],
-  consommations: ['Administrateur', 'Utilisateur'],
   logistique: ['logistics_admin', 'fleet_manager', 'maintenance_manager', 'logistics_operator', 'finance', 'read_only'],
 };
 const MODULES = Object.keys(MODULE_ROLES);
-const identitySource = (module) => module === 'consommations' ? 'cheques' : ['cheques', 'impayes'].includes(module) ? module : null;
+const identitySource = (module) => ['cheques', 'impayes'].includes(module) ? module : null;
 const LOGISTICS_PERMISSIONS = {
   logistics_admin: ['*'],
   fleet_manager: [
@@ -55,7 +54,7 @@ const LOGISTICS_PERMISSIONS = {
 };
 export const permissionsForRole = (module, role) => {
   if (module === 'logistique') return LOGISTICS_PERMISSIONS[role] || [];
-  if ((module === 'cheques' || module === 'consommations') && role === 'Administrateur') return ['read', 'write', 'admin', '*'];
+  if (module === 'cheques' && role === 'Administrateur') return ['read', 'write', 'admin', '*'];
   if (module === 'impayes' && role === 'admin') return ['read', 'write', 'admin', '*'];
   if (module === 'impayes' && role === 'lecture_seule') return ['read'];
   return ['read', 'write'];
@@ -89,6 +88,9 @@ export async function saveAccess(client, userId, access) {
        data_scope=EXCLUDED.data_scope,active=true`,
     [userId, access.module, access.role, JSON.stringify(access.permissions), JSON.stringify(access.dataScope)],
   );
+  if (access.module === 'cheques') {
+    await client.query("DELETE FROM module_access WHERE user_id=$1 AND module_code='consommations'", [userId]);
+  }
   if (!source) return;
   await client.query(
     `INSERT INTO legacy_identities(central_user_id,source,legacy_user_id)
@@ -96,6 +98,27 @@ export async function saveAccess(client, userId, access) {
      ON CONFLICT(central_user_id,source) DO UPDATE SET legacy_user_id=EXCLUDED.legacy_user_id`,
     [userId, source, access.legacyUserId],
   );
+}
+
+export function normalizeAccesses(accesses) {
+  const normalized = new Map();
+  for (const access of Array.isArray(accesses) ? accesses : []) {
+    const module = access.module === 'consommations' ? 'cheques' : access.module;
+    if (!MODULES.includes(module)) continue;
+    if (!normalized.has(module) || access.module === module) normalized.set(module, { ...access, module });
+  }
+  return [...normalized.values()];
+}
+
+export async function deleteUserAccount(client, userId) {
+  const target = await client.query('SELECT id,name,email,platform_admin FROM users WHERE id=$1 FOR UPDATE', [userId]);
+  if (!target.rows[0]) return { status: 'not_found' };
+  if (target.rows[0].platform_admin) {
+    const admins = await client.query('SELECT COUNT(*)::int AS count FROM users WHERE active=true AND platform_admin=true AND id<>$1', [userId]);
+    if (!admins.rows[0].count) return { status: 'last_admin' };
+  }
+  await client.query('DELETE FROM users WHERE id=$1', [userId]);
+  return { status: 'deleted', user: target.rows[0] };
 }
 
 router.get('/users', async (_req, res) => {
@@ -110,7 +133,7 @@ router.get('/users', async (_req, res) => {
             WHEN ma.module_code IN ('cheques','impayes') THEN ma.module_code ELSE NULL END
         WHERE ma.user_id=u.id AND ma.active=true),'[]') AS accesses
     FROM users u ORDER BY u.name`);
-  res.json(rows);
+  res.json(rows.map((user) => ({ ...user, accesses: normalizeAccesses(user.accesses) })));
 });
 
 router.get('/legacy-identities', async (_req, res) => {
@@ -203,9 +226,10 @@ router.delete('/users/:id/access/:module', async (req, res) => {
   const client = await centralPool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('DELETE FROM module_access WHERE user_id=$1 AND module_code=$2', [req.params.id, req.params.module]);
+    if (req.params.module === 'cheques') await client.query("DELETE FROM module_access WHERE user_id=$1 AND module_code IN ('cheques','consommations')", [req.params.id]);
+    else await client.query('DELETE FROM module_access WHERE user_id=$1 AND module_code=$2', [req.params.id, req.params.module]);
     const stillUsed = source === 'cheques'
-      ? await client.query(`SELECT 1 FROM module_access WHERE user_id=$1 AND module_code IN ('cheques','consommations') AND active=true`, [req.params.id])
+      ? await client.query(`SELECT 1 FROM module_access WHERE user_id=$1 AND module_code='cheques' AND active=true`, [req.params.id])
       : source === 'impayes'
         ? await client.query(`SELECT 1 FROM module_access WHERE user_id=$1 AND module_code='impayes' AND active=true`, [req.params.id])
         : { rowCount: 1 };
@@ -216,6 +240,26 @@ router.delete('/users/:id/access/:module', async (req, res) => {
   } catch {
     await client.query('ROLLBACK');
     res.status(500).json({ error: 'Suppression de l\'accès impossible.' });
+  } finally { client.release(); }
+});
+
+router.delete('/users/:id', async (req, res) => {
+  if (req.params.id === req.identity.id) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte.' });
+  const client = await centralPool.connect();
+  try {
+    await client.query('BEGIN');
+    const deletion = await deleteUserAccount(client, req.params.id);
+    if (deletion.status === 'not_found') { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Utilisateur introuvable.' }); }
+    if (deletion.status === 'last_admin') { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Le dernier administrateur actif ne peut pas être supprimé.' }); }
+    await client.query(
+      'INSERT INTO audit_logs(user_id,event,details,ip_address) VALUES($1,$2,$3,$4)',
+      [req.identity.id, 'user_deleted', JSON.stringify({ deletedUserId: deletion.user.id, name: deletion.user.name, email: deletion.user.email }), req.ip],
+    );
+    await client.query('COMMIT');
+    res.status(204).end();
+  } catch {
+    await client.query('ROLLBACK').catch(() => undefined);
+    res.status(500).json({ error: 'Suppression du compte impossible.' });
   } finally { client.release(); }
 });
 

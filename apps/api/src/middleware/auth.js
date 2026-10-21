@@ -46,7 +46,8 @@ export function requireModule(moduleCode, permission = 'read') {
     const result = await centralQuery(
       `SELECT ma.role,ma.permissions,ma.data_scope,li.legacy_user_id
        FROM module_access ma LEFT JOIN legacy_identities li ON li.central_user_id=ma.user_id AND li.source=$2
-       WHERE ma.user_id=$1 AND ma.module_code=$3 AND ma.active=true`,
+       WHERE ma.user_id=$1 AND (ma.module_code=$3 OR ($3='cheques' AND ma.module_code='consommations')) AND ma.active=true
+       ORDER BY (ma.module_code=$3) DESC LIMIT 1`,
       [req.identity.id, identitySource, moduleCode]
     );
     const access = result.rows[0];

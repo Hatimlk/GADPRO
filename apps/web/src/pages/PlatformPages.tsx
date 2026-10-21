@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Banknote, CheckCircle2, ChevronLeft, FileWarning, Grid2X2, KeyRound, LogOut, Search, Settings, ShieldCheck, ShieldX, Plus, Pencil, Power, RefreshCw, Save, Truck, UserCheck, UserCog, Users, UserX, X } from 'lucide-react';
+import { Activity, ArrowUpRight, Banknote, CheckCircle2, ChevronLeft, FileWarning, Grid2X2, KeyRound, LogOut, Search, Settings, ShieldCheck, ShieldX, Sparkles, Plus, Pencil, Power, RefreshCw, Save, Trash2, Truck, UserCheck, UserCog, Users, UserX, X } from 'lucide-react';
 import { ProgadBrand } from '../components/ProgadBrand';
 import { useApp } from '../lib/AppContext';
 import { api } from '../lib/api';
 
-type ModuleCode = 'cheques' | 'impayes' | 'consommations' | 'logistique';
+type ModuleCode = 'cheques' | 'impayes' | 'logistique';
 type Access = { module: ModuleCode; role: string; permissions: string[]; dataScope: Record<string, unknown>; legacyUserId?: string };
 type CentralUser = { id: string; name: string; email: string; active: boolean; platformAdmin: boolean; accesses: Access[] };
 type LegacyUser = { id: string; name: string; email: string; role: string; active: boolean };
@@ -15,27 +15,25 @@ type UserDraft = { id?: string; name: string; email: string; password: string; p
 
 const modules = {
   cheques: {
-    label: 'Suivi des Instances', href: '/cheques', icon: Banknote,
-    iconStyle: 'bg-blue-50 text-blue-600 ring-blue-100', hoverStyle: 'hover:border-blue-200 hover:bg-blue-50/30',
+    label: 'Suivi des Instances', eyebrow: 'Finance & exploitation', href: '/cheques', icon: Banknote,
+    description: 'Pilotez les règlements, les échéances et les consommations de vos sites.',
+    iconStyle: 'bg-blue-600 text-white shadow-blue-600/25', accent: 'from-blue-600 to-indigo-600', glow: 'bg-blue-400',
   },
   impayes: {
-    label: 'Suivi des impayés', href: '/impayes', icon: FileWarning,
-    iconStyle: 'bg-amber-50 text-amber-600 ring-amber-100', hoverStyle: 'hover:border-amber-200 hover:bg-amber-50/30',
+    label: 'Suivi des impayés', eyebrow: 'Recouvrement', href: '/impayes', icon: FileWarning,
+    description: 'Priorisez les dossiers, les relances et les actions de recouvrement.',
+    iconStyle: 'bg-amber-500 text-white shadow-amber-500/25', accent: 'from-amber-500 to-orange-500', glow: 'bg-amber-300',
   },
   logistique: {
-    label: 'Logistique & GMAO', href: '/logistique', icon: Truck,
-    iconStyle: 'bg-cyan-50 text-cyan-700 ring-cyan-100', hoverStyle: 'hover:border-cyan-200 hover:bg-cyan-50/30',
-  },
-  administration: {
-    label: 'Administration', href: '/administration', icon: Settings,
-    iconStyle: 'bg-violet-50 text-violet-600 ring-violet-100', hoverStyle: 'hover:border-violet-200 hover:bg-violet-50/30',
+    label: 'Logistique & GMAO', eyebrow: 'Parc & maintenance', href: '/logistique', icon: Truck,
+    description: 'Supervisez le parc, la maintenance, les coûts et la disponibilité.',
+    iconStyle: 'bg-cyan-600 text-white shadow-cyan-600/25', accent: 'from-cyan-500 to-teal-500', glow: 'bg-cyan-300',
   },
 };
 
 const accessConfig: Record<ModuleCode, { label: string; source?: keyof LegacyOptions; roles: string[] }> = {
   cheques: { label: 'Suivi des Instances', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
   impayes: { label: 'Suivi des impayés', source: 'impayes', roles: ['commercial', 'responsable_recouvrement', 'lecture_seule', 'admin'] },
-  consommations: { label: 'Consommations', source: 'cheques', roles: ['Utilisateur', 'Administrateur'] },
   logistique: {
     label: 'Logistique & GMAO',
     roles: ['logistics_admin', 'fleet_manager', 'maintenance_manager', 'logistics_operator', 'finance', 'read_only'],
@@ -59,36 +57,28 @@ const blankDraft = (): UserDraft => ({
   accesses: {
     cheques: { enabled: false, role: 'Utilisateur', legacyUserId: '' },
     impayes: { enabled: false, role: 'commercial', legacyUserId: '' },
-    consommations: { enabled: false, role: 'Utilisateur', legacyUserId: '' },
     logistique: { enabled: false, role: 'read_only', legacyUserId: '' },
   },
 });
 
 export function ModuleDashboard() {
   const { currentUser, logout } = useApp();
-  const hasCheques = currentUser?.accesses?.some((access) => access.module === 'cheques') ?? false;
-  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations') ?? false;
-  const displayedModules = {
-    ...modules,
-    cheques: { ...modules.cheques, href: hasCheques ? '/cheques' : '/cheques/consommations' },
-  };
-  const allowed = Object.entries(displayedModules).filter(([code]) => code === 'administration'
-    ? currentUser?.platformAdmin
-    : code === 'cheques'
-      ? hasCheques || hasConsumptions
-      : currentUser?.accesses?.some((access) => access.module === code));
+  const allowed = Object.entries(modules).filter(([code]) => currentUser?.accesses?.some((access) => access.module === code));
   const firstName = currentUser?.name?.trim().split(/\s+/)[0] || 'Utilisateur';
   const initials = currentUser?.name?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'GA';
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const profileLabel = currentUser?.platformAdmin ? 'Administrateur' : 'Collaborateur';
 
-  return <main className="min-h-screen bg-[#f5f7fb] text-[#111827]">
-    <header className="sticky top-0 z-30 border-b border-[#e5eaf2] bg-white/95 backdrop-blur-xl">
+  return <main className="relative min-h-screen overflow-hidden bg-[#f3f6fb] text-[#111827]">
+    <div className="pointer-events-none absolute -right-48 top-20 h-[32rem] w-[32rem] rounded-full bg-blue-200/30 blur-3xl" />
+    <div className="pointer-events-none absolute -left-40 top-[28rem] h-96 w-96 rounded-full bg-cyan-100/50 blur-3xl" />
+    <header className="sticky top-0 z-30 border-b border-white/70 bg-white/85 backdrop-blur-2xl">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
         <ProgadBrand className="w-40 sm:w-44" />
         <div className="flex items-center gap-3 sm:gap-4">
+          {currentUser?.platformAdmin && <Link to="/administration" className="hidden h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700 sm:inline-flex"><Settings className="h-4 w-4" /> Utilisateurs</Link>}
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#eef4ff] text-xs font-black text-[#2455a4] ring-1 ring-inset ring-blue-100">{initials}</span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-black text-white shadow-lg shadow-blue-600/20">{initials}</span>
             <div className="hidden max-w-48 sm:block"><p className="truncate text-sm font-bold text-slate-800">{currentUser?.name}</p><p className="truncate text-[11px] text-slate-500">{profileLabel}</p></div>
           </div>
           <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
@@ -97,26 +87,45 @@ export function ModuleDashboard() {
       </div>
     </header>
 
-    <div className="mx-auto w-full max-w-7xl px-5 pb-16 pt-9 sm:px-8 sm:pt-12 lg:px-10">
-      <section aria-labelledby="dashboard-title">
-        <p className="text-xs font-semibold capitalize text-[#2455a4]">{today}</p>
-        <h1 id="dashboard-title" className="mt-2 text-[2rem] font-black tracking-[-0.035em] text-slate-950 sm:text-4xl">Bonjour {firstName} <span aria-hidden="true">👋</span></h1>
+    <div className="relative mx-auto w-full max-w-7xl px-5 pb-16 pt-7 sm:px-8 sm:pt-10 lg:px-10">
+      {currentUser?.platformAdmin && <Link to="/administration" className="mb-4 inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm sm:hidden"><Settings className="h-4 w-4" /> Utilisateurs</Link>}
+      <section aria-labelledby="dashboard-title" className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#102a56] via-[#17458a] to-[#2474c8] px-6 py-8 text-white shadow-[0_24px_60px_rgba(23,69,138,0.22)] sm:px-10 sm:py-10">
+        <div className="absolute -right-14 -top-20 h-64 w-64 rounded-full border-[42px] border-white/5" />
+        <div className="absolute bottom-0 right-16 h-32 w-32 translate-y-1/2 rounded-full bg-cyan-300/15 blur-xl" />
+        <div className="relative max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-blue-50"><Sparkles className="h-3.5 w-3.5 text-cyan-300" /> Espace de travail PROGAD</div>
+          <p className="mt-6 text-xs font-medium capitalize text-blue-100">{today}</p>
+          <h1 id="dashboard-title" className="mt-2 text-[2rem] font-black tracking-[-0.04em] sm:text-4xl lg:text-5xl">Bonjour {firstName} <span className="inline-block origin-bottom-right animate-[wave_1.8s_ease-in-out_1]" aria-hidden="true">👋</span></h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100 sm:text-base">Retrouvez vos outils métier et poursuivez vos opérations depuis un point d’entrée unique.</p>
+          <div className="mt-7 flex flex-wrap gap-3 text-xs font-semibold">
+            <span className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-inset ring-white/10"><Activity className="h-4 w-4 text-emerald-300" /><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" /> Services opérationnels</span>
+            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-inset ring-white/10">{allowed.length} espace{allowed.length > 1 ? 's' : ''} accessible{allowed.length > 1 ? 's' : ''}</span>
+          </div>
+        </div>
       </section>
 
-      <section className="mt-10 sm:mt-12" aria-label="Applications">
-        {allowed.length ? <div className="grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
-          {allowed.map(([code, item]) => <ApplicationTile key={code} item={item} />)}
+      <section className="mt-9 sm:mt-11" aria-label="Applications">
+        <div className="mb-5 flex items-end justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Applications métier</p><h2 className="mt-1 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Où souhaitez-vous travailler ?</h2></div><span className="hidden text-xs font-medium text-slate-400 sm:block">Sélectionnez un espace pour continuer</span></div>
+        {allowed.length ? <div className="grid gap-4 md:grid-cols-3 lg:gap-5">
+          {allowed.map(([code, item], index) => <ApplicationTile key={code} item={item} index={index} />)}
         </div> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><Grid2X2 className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun module ne vous est affecté.</p><p className="mt-1 text-xs text-slate-500">Contactez l’administrateur PROGAD.</p></div>}
       </section>
     </div>
   </main>;
 }
 
-function ApplicationTile({ item }: { item: (typeof modules)[keyof typeof modules] }) {
+function ApplicationTile({ item, index }: { item: (typeof modules)[keyof typeof modules]; index: number }) {
   const Icon = item.icon;
-  return <Link to={item.href} aria-label={`Ouvrir ${item.label}`} className={`group flex min-h-44 flex-col items-center justify-center rounded-2xl border border-[#e5eaf2] bg-white px-5 py-7 text-center shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2455a4] focus-visible:ring-offset-2 sm:min-h-52 ${item.hoverStyle}`}>
-    <span className={`grid h-16 w-16 place-items-center rounded-2xl ring-1 ring-inset transition duration-200 group-hover:scale-105 ${item.iconStyle}`}><Icon className="h-7 w-7" strokeWidth={1.9} /></span>
-    <h3 className="mt-6 text-[15px] font-bold leading-snug text-slate-900 sm:text-base">{item.label}</h3>
+  return <Link to={item.href} aria-label={`Ouvrir ${item.label}`} className="group relative min-h-64 overflow-hidden rounded-[1.5rem] border border-white bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/70 transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_48px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:p-6">
+    <span className={`absolute -right-12 -top-14 h-40 w-40 rounded-full opacity-0 blur-3xl transition duration-500 group-hover:opacity-30 ${item.glow}`} />
+    <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${item.accent}`} />
+    <div className="relative flex h-full flex-col">
+      <div className="flex items-start justify-between"><span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-lg transition duration-300 group-hover:rotate-[-3deg] group-hover:scale-105 ${item.iconStyle}`}><Icon className="h-6 w-6" strokeWidth={2} /></span><span className="text-[11px] font-black text-slate-200">0{index + 1}</span></div>
+      <p className="mt-6 text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{item.eyebrow}</p>
+      <h3 className="mt-2 text-lg font-black leading-snug tracking-tight text-slate-950">{item.label}</h3>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{item.description}</p>
+      <span className="mt-auto inline-flex items-center gap-2 pt-6 text-xs font-black text-slate-800">Ouvrir l’espace <ArrowUpRight className="h-4 w-4 transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></span>
+    </div>
   </Link>;
 }
 
@@ -129,6 +138,7 @@ export function AdministrationPage() {
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
@@ -160,8 +170,6 @@ export function AdministrationPage() {
       .filter(([, access]) => access.enabled)
       .map(([module, access]) => ({ module, role: access.role, legacyUserId: access.legacyUserId }));
     if (accesses.some((access) => access.module !== 'logistique' && !access.legacyUserId)) { setError('Sélectionnez un identifiant historique pour chaque module historique activé.'); return; }
-    const chequesIds = accesses.filter((access) => access.module === 'cheques' || access.module === 'consommations').map((access) => access.legacyUserId);
-    if (new Set(chequesIds).size > 1) { setError('Suivi des Instances et Consommations doivent correspondre au même utilisateur historique Chèques.'); return; }
     setSaving(true); setError(''); setSuccess('');
     try {
       if (!draft.id) {
@@ -185,6 +193,19 @@ export function AdministrationPage() {
     if (!window.confirm(`${user.active ? 'Désactiver' : 'Réactiver'} le compte de ${user.name} ?`)) return;
     try { await api.patch(`/administration/users/${user.id}/status`, { active: !user.active }); setSuccess(`Compte ${user.active ? 'désactivé' : 'réactivé'}.`); await load(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Modification impossible.'); }
+  };
+
+  const removeUser = async (user: CentralUser) => {
+    if (user.id === currentUser?.centralId) { setError('Vous ne pouvez pas supprimer votre propre compte.'); return; }
+    if (!window.confirm(`Supprimer définitivement le compte de ${user.name} ?\n\nSes accès PROGAD seront supprimés. Les historiques métier existants seront conservés.`)) return;
+    setDeletingId(user.id); setError(''); setSuccess('');
+    try {
+      await api.delete(`/administration/users/${user.id}`);
+      setDraft((current) => current?.id === user.id ? null : current);
+      setSuccess(`Le compte de ${user.name} a été supprimé.`);
+      await load();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Suppression impossible.'); }
+    finally { setDeletingId(null); }
   };
 
   const filteredUsers = useMemo(() => {
@@ -216,11 +237,11 @@ export function AdministrationPage() {
       {success && <div role="status" className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />{success}</div>}
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-slate-200 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="font-black text-slate-900">Annuaire PROGAD</h2><p className="mt-0.5 text-xs text-slate-500">{filteredUsers.length} compte{filteredUsers.length > 1 ? 's' : ''} affiché{filteredUsers.length > 1 ? 's' : ''}</p></div><div className="flex flex-col gap-3 sm:flex-row"><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un collaborateur…" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:w-64" /></div><div className="flex rounded-xl bg-slate-100 p-1">{(['all', 'active', 'inactive'] as const).map((filter) => <button key={filter} onClick={() => setStatusFilter(filter)} className={`rounded-lg px-3 py-2 text-[11px] font-bold transition ${statusFilter === filter ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{filter === 'all' ? 'Tous' : filter === 'active' ? 'Actifs' : 'Inactifs'}</button>)}</div><button onClick={() => void load()} disabled={loading} aria-label="Actualiser les comptes" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button></div></div>
+        <div className="flex flex-col gap-4 border-b border-slate-200 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="font-black text-slate-900">Utilisateurs</h2><p className="mt-0.5 text-xs text-slate-500">{filteredUsers.length} compte{filteredUsers.length > 1 ? 's' : ''} affiché{filteredUsers.length > 1 ? 's' : ''}</p></div><div className="flex flex-col gap-3 sm:flex-row"><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un collaborateur…" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:w-64" /></div><div className="flex rounded-xl bg-slate-100 p-1">{(['all', 'active', 'inactive'] as const).map((filter) => <button key={filter} onClick={() => setStatusFilter(filter)} className={`rounded-lg px-3 py-2 text-[11px] font-bold transition ${statusFilter === filter ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{filter === 'all' ? 'Tous' : filter === 'active' ? 'Actifs' : 'Inactifs'}</button>)}</div><button onClick={() => void load()} disabled={loading} aria-label="Actualiser les comptes" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button></div></div>
 
         {loading ? <div className="grid place-items-center px-6 py-20"><RefreshCw className="h-6 w-6 animate-spin text-blue-600" /><p className="mt-3 text-xs text-slate-500">Chargement des comptes…</p></div> : filteredUsers.length ? <div className="divide-y divide-slate-100">{filteredUsers.map((user) => {
           const userInitials = user.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-          return <article key={user.id} className="p-4 transition hover:bg-slate-50/70 sm:p-5"><div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"><div className="flex min-w-0 gap-3.5"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xs font-black ${user.active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>{userInitials}</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-black text-slate-900">{user.name}</h3><span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${user.active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{user.active ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}{user.active ? 'Actif' : 'Désactivé'}</span>{user.platformAdmin && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">Admin plateforme</span>}</div><p className="mt-1 truncate text-xs text-slate-500">{user.email}</p><div className="mt-3 flex flex-wrap gap-1.5">{user.accesses.length ? user.accesses.map((access) => <span key={access.module} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] text-slate-600"><b className="text-slate-800">{accessConfig[access.module]?.label || access.module}</b><span className="mx-1 text-slate-300">·</span>{roleLabel(access.module, access.role)}<span className="mx-1 text-slate-300">·</span>ID {access.legacyUserId || 'manquant'}</span>) : <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">Aucun module attribué</span>}</div></div></div><div className="flex shrink-0 gap-2 pl-[3.4rem] xl:pl-0"><button onClick={() => edit(user)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:border-blue-200 hover:text-blue-700"><Pencil className="h-3.5 w-3.5" /> Modifier</button><button onClick={() => void toggleStatus(user)} className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition ${user.active ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}><Power className="h-3.5 w-3.5" />{user.active ? 'Désactiver' : 'Réactiver'}</button></div></div></article>;
+          return <article key={user.id} className="p-4 transition hover:bg-slate-50/70 sm:p-5"><div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"><div className="flex min-w-0 gap-3.5"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xs font-black ${user.active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>{userInitials}</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-black text-slate-900">{user.name}</h3><span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${user.active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{user.active ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}{user.active ? 'Actif' : 'Désactivé'}</span>{user.platformAdmin && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">Admin plateforme</span>}</div><p className="mt-1 truncate text-xs text-slate-500">{user.email}</p><div className="mt-3 flex flex-wrap gap-1.5">{user.accesses.length ? user.accesses.map((access) => <span key={access.module} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] text-slate-600"><b className="text-slate-800">{accessConfig[access.module]?.label || access.module}</b><span className="mx-1 text-slate-300">·</span>{roleLabel(access.module, access.role)}{access.legacyUserId && <><span className="mx-1 text-slate-300">·</span>ID {access.legacyUserId}</>}</span>) : <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">Aucun module attribué</span>}</div></div></div><div className="flex shrink-0 flex-wrap gap-2 pl-[3.4rem] xl:pl-0"><button onClick={() => edit(user)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:border-blue-200 hover:text-blue-700"><Pencil className="h-3.5 w-3.5" /> Modifier</button><button onClick={() => void toggleStatus(user)} className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition ${user.active ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}><Power className="h-3.5 w-3.5" />{user.active ? 'Désactiver' : 'Réactiver'}</button>{user.id !== currentUser?.centralId && <button disabled={deletingId === user.id} onClick={() => void removeUser(user)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />{deletingId === user.id ? 'Suppression…' : 'Supprimer'}</button>}</div></div></article>;
         })}</div> : <div className="px-6 py-16 text-center"><Search className="mx-auto h-7 w-7 text-slate-300" /><p className="mt-3 text-sm font-bold text-slate-700">Aucun compte trouvé</p><p className="mt-1 text-xs text-slate-500">Modifiez votre recherche ou le filtre sélectionné.</p></div>}
       </section>
       <p className="mt-4 text-center text-[11px] text-slate-400">La désactivation préserve l’historique et bloque immédiatement les accès.</p>

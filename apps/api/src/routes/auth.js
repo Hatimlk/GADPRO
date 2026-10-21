@@ -16,7 +16,13 @@ async function loadAccesses(userId) {
        AND li.source=CASE WHEN ma.module_code='consommations' THEN 'cheques' ELSE ma.module_code END
      WHERE ma.user_id=$1 AND ma.active=true ORDER BY ma.module_code`, [userId]
   );
-  return rows;
+  const normalized = new Map();
+  for (const access of rows) {
+    const module = access.module === 'consommations' ? 'cheques' : access.module;
+    if (!['cheques', 'impayes', 'logistique'].includes(module)) continue;
+    if (!normalized.has(module) || access.module === module) normalized.set(module, { ...access, module });
+  }
+  return [...normalized.values()];
 }
 async function publicUser(user) {
   return { id: user.id, name: user.name, nom: user.name, email: user.email, active: user.active, platformAdmin: user.platform_admin, accesses: await loadAccesses(user.id) };

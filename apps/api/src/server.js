@@ -59,7 +59,7 @@ app.use('/api/cheques/checks', ...chequeAccess, chequeRoutes.checks);
 app.use('/api/cheques/partners', ...chequeAccess, chequeRoutes.partners);
 app.use('/api/cheques/instances', ...chequeAccess, chequeRoutes.instances);
 app.use('/api/cheques/users', authenticate, requireModule('cheques', 'admin'), chequeRoutes.users);
-app.use('/api/consommations', authenticate, requireModuleForRequest('consommations'), chequeRoutes.consumptions);
+app.use('/api/consommations', authenticate, requireModuleForRequest('cheques'), chequeRoutes.consumptions);
 
 const impayesAccess = [authenticate, requireModuleForRequest('impayes')];
 app.use('/api/impayes/dossiers', ...impayesAccess, impayesDossiers);

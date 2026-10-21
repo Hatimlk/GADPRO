@@ -84,8 +84,8 @@ export default function App() {
         <Route path="virements" element={<Virements />} /><Route path="roles" element={<ChequesAdmin><Roles /></ChequesAdmin>} />
         <Route path="calendrier" element={<Calendar />} /><Route path="partenaires" element={<Partners />} /><Route path="guide" element={<Guide />} />
       </Route>
-      <Route path="consommations" element={<Protected module="consommations"><Consumptions /></Protected>} />
-      <Route path="consommations/branches/:code" element={<Protected module="consommations"><ConsumptionBranch /></Protected>} />
+      <Route path="consommations" element={<Protected module="cheques"><Consumptions /></Protected>} />
+      <Route path="consommations/branches/:code" element={<Protected module="cheques"><ConsumptionBranch /></Protected>} />
     </Route>
     <Route element={<ImpayesGate />}><Route path="/impayes" element={<ImpayesLayout />}>
       <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<ImpayesDashboard />} />

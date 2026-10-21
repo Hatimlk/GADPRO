@@ -90,8 +90,6 @@ export function AppLayout() {
   const isCommercial = user?.role === 'commercial';
   const hasPersonalPortfolio = isCommercial || user?.role === 'responsable_recouvrement';
   const hasInstances = currentUser?.accesses?.some((access) => access.module === 'cheques') ?? false;
-  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations') ?? false;
-  const instancesHref = hasInstances ? '/cheques' : '/cheques/consommations';
 
   const links = [
       ...(isCommercial
@@ -175,9 +173,9 @@ export function AppLayout() {
             >
               Tableau de Board PROGAD
             </NavLink>
-            {(hasInstances || hasConsumptions) && (
+            {hasInstances && (
               <NavLink
-                to={instancesHref}
+                to="/cheques"
                 onClick={() => setSidebarOpen(false)}
                 className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-brand-500"
               >

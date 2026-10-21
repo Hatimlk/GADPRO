@@ -24,7 +24,7 @@ try {
 
   const iq = await impayes.query(`INSERT INTO users(nom,email,mot_de_passe_hash,role,actif) VALUES('Administrateur local',$1,$2,'admin',true) ON CONFLICT(email) DO UPDATE SET mot_de_passe_hash=EXCLUDED.mot_de_passe_hash RETURNING id`, [email, hash]);
   const cu = await central.query(`INSERT INTO users(name,email,email_normalized,password_hash,active,platform_admin) VALUES('Administrateur local',$1,$1,$2,true,true) ON CONFLICT(email_normalized) DO UPDATE SET password_hash=EXCLUDED.password_hash,active=true,platform_admin=true RETURNING id`, [email, hash]);
-  const accesses = [['cheques','Administrateur'],['consommations','Administrateur'],['impayes','admin'],['administration','admin'],['logistique','logistics_admin']];
+  const accesses = [['cheques','Administrateur'],['impayes','admin'],['logistique','logistics_admin']];
   for (const [module, role] of accesses) await central.query(`INSERT INTO module_access(user_id,module_code,role,permissions) VALUES($1,$2,$3,'["read","write","admin","*"]') ON CONFLICT(user_id,module_code) DO UPDATE SET role=EXCLUDED.role,permissions=EXCLUDED.permissions,active=true`, [cu.rows[0].id, module, role]);
   await central.query(`INSERT INTO legacy_identities(central_user_id,source,legacy_user_id) VALUES($1,'cheques',$2) ON CONFLICT(source,legacy_user_id) DO UPDATE SET central_user_id=EXCLUDED.central_user_id`, [cu.rows[0].id, String(cq.rows[0].id)]);
   await central.query(`INSERT INTO legacy_identities(central_user_id,source,legacy_user_id) VALUES($1,'impayes',$2) ON CONFLICT(source,legacy_user_id) DO UPDATE SET central_user_id=EXCLUDED.central_user_id`, [cu.rows[0].id, String(iq.rows[0].id)]);

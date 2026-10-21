@@ -13,7 +13,7 @@ const COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
 const val = (v: unknown) => v === '' || v === null || v === undefined || v === '-' ? null : Number(v);
 
 export function Consumptions() {
-    const { currentUser } = useApp(); const consumptionRole = currentUser?.accesses?.find((access) => access.module === 'consommations')?.role; const admin = consumptionRole === 'Administrateur'; const canEdit = Boolean(currentUser); const canExport = admin || ['Direction', 'Manager'].includes(String(consumptionRole));
+    const { currentUser } = useApp(); const consumptionRole = currentUser?.accesses?.find((access) => access.module === 'cheques')?.role; const admin = consumptionRole === 'Administrateur'; const canEdit = Boolean(currentUser); const canExport = admin || ['Direction', 'Manager'].includes(String(consumptionRole));
     const [rows, setRows] = useState<ConsumptionRecord[]>([]), [branches, setBranches] = useState<Branch[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState('');
     const [year, setYear] = useState('Tous'), [month, setMonth] = useState('Tous'), [branch, setBranch] = useState('Toutes'), [type, setType] = useState('Tous'), [search, setSearch] = useState('');
     const [page, setPage] = useState(1), [sort, setSort] = useState<'date' | 'branch' | 'total'>('date'), [asc, setAsc] = useState(false), [compareMode, setCompareMode] = useState('Total dأ©penses');

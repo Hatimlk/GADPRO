@@ -26,7 +26,7 @@ const NAV_GROUPS = [
       { name: "Tableau de bord", path: "/cheques", icon: LayoutDashboard, requiredModule: "cheques" },
       { name: "Comptes", path: "/cheques/comptes", icon: Briefcase, requiredModule: "cheques" },
       { name: "Rôles", path: "/cheques/roles", icon: UserCog, hasInfo: true, requiredModule: "cheques" },
-      { name: "Consommations", path: "/cheques/consommations", icon: Droplets, requiredModule: "consommations" },
+      { name: "Consommations", path: "/cheques/consommations", icon: Droplets, requiredModule: "cheques" },
     ]
   },
   {
@@ -52,7 +52,6 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
   const location = useLocation();
   const { currentUser, logout } = useApp();
   const hasCheques = currentUser?.accesses?.some((access) => access.module === 'cheques');
-  const hasConsumptions = currentUser?.accesses?.some((access) => access.module === 'consommations');
 
   return (
     <div className={cn("w-[240px] bg-slate-900 h-[100dvh] flex flex-col text-slate-300", className)}>
@@ -70,7 +69,6 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
             <div className="space-y-1">
               {group.items.map((item) => {
                 if (item.requiredModule === 'cheques' && !hasCheques) return null;
-                if (item.requiredModule === 'consommations' && !hasConsumptions) return null;
                 if (item.path === "/cheques/roles" && currentUser?.role !== "Administrateur") {
                   return null;
                 }
