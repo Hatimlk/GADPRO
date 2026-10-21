@@ -4,6 +4,7 @@ import { requireLogisticsPermission } from '../middleware/authorization.js';
 import { automationRunSchema, validateBody } from '../schemas/validation.js';
 import { writeAudit } from '../services/audit.js';
 import { calculatePreventiveDue } from '../services/preventive.js';
+import { synchronizeExtendedAlerts } from '../services/extendedAlerts.js';
 
 const router = Router();
 
@@ -61,7 +62,8 @@ router.post('/daily',requireLogisticsPermission('settings.admin'),validateBody(a
       ON CONFLICT(deduplication_key) DO UPDATE SET title=EXCLUDED.title,message=EXCLUDED.message,status='open',resolved_at=NULL,resolved_by=NULL,updated_at=NOW()`);
     await client.query(`UPDATE logistics_alerts al SET status='resolved',resolved_at=NOW(),resolved_by=$1,updated_at=NOW(),version=version+1
       WHERE al.alert_type='immobilized_asset' AND al.status!='resolved' AND NOT EXISTS(SELECT 1 FROM logistics_assets a WHERE al.asset_id=a.id AND a.status='immobilized' AND a.deleted_at IS NULL)`,[req.identity.id]);
-    const result={preventive,downtimePeriodsSynchronized:downtime.rowCount,delayedAlerts:delayed.rowCount,immobilizedAlerts:immobilized.rowCount};
+    const extendedAlerts=await synchronizeExtendedAlerts(client,req.identity.id);
+    const result={preventive,downtimePeriodsSynchronized:downtime.rowCount,delayedAlerts:delayed.rowCount,immobilizedAlerts:immobilized.rowCount,extendedAlerts};
     await writeAudit(client,req,'automation.daily_succeeded','job_run',run.id,null,result,{runKey});
     await client.query('COMMIT');
     const completed=await logisticsQuery("UPDATE logistics_job_runs SET status='succeeded',finished_at=NOW(),result=$1 WHERE id=$2 RETURNING *",[result,run.id]);

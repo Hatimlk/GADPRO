@@ -40,3 +40,6 @@ Voir également la [phase 2D — documents et notifications](docs/LOGISTIQUE_GMA
 La [phase 3A — automatisation et analytique](docs/LOGISTIQUE_GMAO_PHASE3A.md) documente les jobs idempotents, les coûts suivis, la disponibilité et la performance prestataire.
 La [phase 3B — imports guidés](docs/LOGISTIQUE_GMAO_PHASE3B.md) couvre les aperçus CSV/XLSX, le mapping, les doublons et la confirmation auditée.
 La [phase 3C — rapports et seuils carburant](docs/LOGISTIQUE_GMAO_PHASE3C.md) décrit les exports Excel/PDF et la configuration des anomalies.
+La [phase 3D — paramètres, audit et alertes étendues](docs/LOGISTIQUE_GMAO_PHASE3D.md) remplace les écrans provisoires d’administration et complète le traitement quotidien.
+La [phase 3E — imports complémentaires](docs/LOGISTIQUE_GMAO_PHASE3E.md) ajoute les conducteurs, prestataires et historiques de maintenance au parcours CSV/XLSX guidé.
+La [phase 3F — anomalies carburant avancées](docs/LOGISTIQUE_GMAO_PHASE3F.md) ajoute la référence historique et les quantités maximales configurables.

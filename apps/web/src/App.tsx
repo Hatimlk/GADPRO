@@ -28,7 +28,6 @@ const Alerts = lazy(() => import('./impayes/pages/AlertsPage'));
 const Derogation = lazy(() => import('./impayes/pages/DerogationPage'));
 const ImpayesAdmin = lazy(() => import('./impayes/pages/AdminPage'));
 const LogisticsDashboard = lazy(() => import('./logistique/pages/DashboardPage'));
-const LogisticsPlaceholder = lazy(() => import('./logistique/pages/PlaceholderPage'));
 const LogisticsAssets = lazy(() => import('./logistique/pages/AssetsPage'));
 const LogisticsAssetDetail = lazy(() => import('./logistique/pages/AssetDetailPage'));
 const LogisticsDrivers = lazy(() => import('./logistique/pages/DriversPage'));
@@ -49,6 +48,8 @@ const LogisticsQuotations = lazy(() => import('./logistique/pages/QuotationsPage
 const LogisticsPurchaseOrders = lazy(() => import('./logistique/pages/PurchaseOrdersPage'));
 const LogisticsInvoices = lazy(() => import('./logistique/pages/InvoicesPage'));
 const LogisticsImports = lazy(() => import('./logistique/pages/ImportsPage'));
+const LogisticsSettings = lazy(() => import('./logistique/pages/SettingsPage'));
+const LogisticsAudit = lazy(() => import('./logistique/pages/AuditPage'));
 
 function Protected({ module, children }: { module?: string; children: ReactNode }) {
   const { currentUser, initialized } = useApp();
@@ -115,9 +116,9 @@ export default function App() {
       <Route path="commandes" element={<LogisticsPurchaseOrders />} />
       <Route path="factures" element={<LogisticsInvoices />} />
       <Route path="imports" element={<LogisticsImports />} />
-      <Route path="parametres" element={<LogisticsPlaceholder title="Paramètres" phase="Phase 1" />} />
+      <Route path="parametres" element={<LogisticsSettings />} />
       <Route path="referentiels" element={<LogisticsReferences />} />
-      <Route path="audit" element={<LogisticsPlaceholder title="Historique & audit" phase="Phase 1" />} />
+      <Route path="audit" element={<LogisticsAudit />} />
     </Route></Route>
     <Route path="/consommations" element={<Navigate to="/cheques/consommations" replace />} />
     <Route path="/impayes/consommations" element={<Navigate to="/cheques/consommations" replace />} />

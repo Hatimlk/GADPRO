@@ -4,7 +4,64 @@ import { appendAssetScope, requireLogisticsPermission } from '../middleware/auth
 import { alertActionSchema, alertListSchema, validateBody, validateQuery } from '../schemas/validation.js';
 import { sendDatabaseError, writeAudit } from '../services/audit.js';
 
-const router=Router();const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;router.param('id',(req,res,next,value)=>UUID.test(value)?next():res.status(400).json({error:'Identifiant invalide.'}));
-router.get('/',requireLogisticsPermission('alerts.read'),validateQuery(alertListSchema),async(req,res,next)=>{try{const{page,limit,status}=req.validatedQuery;const params=[];const conditions=[];appendAssetScope(req,conditions,params);if(status){params.push(status);conditions.push(`al.status=$${params.length}`);}const where=conditions.length?`WHERE ${conditions.join(' AND ')}`:'';const total=await logisticsQuery(`SELECT COUNT(*)::int AS count FROM logistics_alerts al JOIN logistics_assets a ON a.id=al.asset_id ${where}`,params);params.push(limit,(page-1)*limit);const rows=await logisticsQuery(`SELECT al.*,a.fleet_number,a.brand,a.model,de.due_date,de.due_mileage,de.due_hours FROM logistics_alerts al JOIN logistics_assets a ON a.id=al.asset_id LEFT JOIN logistics_maintenance_due_events de ON de.id=al.due_event_id ${where} ORDER BY CASE al.status WHEN 'open' THEN 1 WHEN 'acknowledged' THEN 2 ELSE 3 END,CASE al.severity WHEN 'critical' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END,al.created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`,params);res.json({data:rows.rows,page,limit,total:total.rows[0].count,totalPages:Math.ceil(total.rows[0].count/limit)});}catch(error){next(error);}});
-for(const action of ['acknowledge','resolve'])router.patch(`/:id/${action}`,requireLogisticsPermission(action==='resolve'?'alerts.resolve':'alerts.acknowledge'),validateBody(alertActionSchema),async(req,res)=>{const client=await logisticsPool.connect();try{await client.query('BEGIN');const scopeParams=[req.params.id];const scope=['al.id=$1'];appendAssetScope(req,scope,scopeParams);const before=await client.query(`SELECT al.* FROM logistics_alerts al JOIN logistics_assets a ON a.id=al.asset_id WHERE ${scope.join(' AND ')} FOR UPDATE OF al`,scopeParams);if(!before.rows[0]){await client.query('ROLLBACK');return res.status(404).json({error:'Alerte introuvable.'});}const targetStatus=action==='resolve'?'resolved':'acknowledged';const timeColumn=action==='resolve'?'resolved_at':'acknowledged_at';const userColumn=action==='resolve'?'resolved_by':'acknowledged_by';const updated=await client.query(`UPDATE logistics_alerts SET status=$1,${timeColumn}=NOW(),${userColumn}=$2,updated_at=NOW(),version=version+1 WHERE id=$3 AND version=$4 RETURNING *`,[targetStatus,req.identity.id,req.params.id,req.validated.version]);if(!updated.rows[0]){await client.query('ROLLBACK');return res.status(409).json({error:'Alerte déjà modifiée.',code:'VERSION_CONFLICT'});}await writeAudit(client,req,`alert.${action}d`,'alert',req.params.id,before.rows[0],updated.rows[0]);await client.query('COMMIT');res.json(updated.rows[0]);}catch(error){await client.query('ROLLBACK');return sendDatabaseError(res,error);}finally{client.release();}});
+const router = Router();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+router.param('id', (req, res, next, value) => UUID.test(value) ? next() : res.status(400).json({ error: 'Identifiant invalide.' }));
+
+function appendAlertScope(req, conditions, params) {
+  const scoped = [];
+  appendAssetScope(req, scoped, params);
+  if (scoped.length) conditions.push(`(al.asset_id IS NULL OR (${scoped.join(' AND ')}))`);
+  const permissions = req.moduleAccess?.permissions || [];
+  if (permissions.includes('*')) return;
+  const domainPermissions = [
+    ['driver_license_expiry', 'drivers.read'],
+    ['critical_stock', 'stock.read'],
+    ['abnormal_fuel_consumption', 'fuel.read'],
+    ['pending_quotation_approval', 'quotations.read'],
+  ];
+  for (const [alertType, permission] of domainPermissions) {
+    if (!permissions.includes(permission)) { params.push(alertType); conditions.push(`al.alert_type<>$${params.length}`); }
+  }
+  if (!permissions.includes('documents.read')) conditions.push("al.alert_type NOT IN ('insurance_expiry','technical_inspection_expiry','document_expiry')");
+}
+
+router.get('/', requireLogisticsPermission('alerts.read'), validateQuery(alertListSchema), async (req, res, next) => {
+  try {
+    const { page, limit, status } = req.validatedQuery;
+    const params = []; const conditions = [];
+    appendAlertScope(req, conditions, params);
+    if (status) { params.push(status); conditions.push(`al.status=$${params.length}`); }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const total = await logisticsQuery(`SELECT COUNT(*)::int AS count FROM logistics_alerts al LEFT JOIN logistics_assets a ON a.id=al.asset_id ${where}`, params);
+    params.push(limit, (page - 1) * limit);
+    const rows = await logisticsQuery(`SELECT al.*,a.fleet_number,a.brand,a.model,COALESCE(al.deadline,de.due_date) AS due_date,de.due_mileage,de.due_hours
+      FROM logistics_alerts al LEFT JOIN logistics_assets a ON a.id=al.asset_id LEFT JOIN logistics_maintenance_due_events de ON de.id=al.due_event_id ${where}
+      ORDER BY CASE al.status WHEN 'open' THEN 1 WHEN 'acknowledged' THEN 2 ELSE 3 END,
+        CASE al.severity WHEN 'critical' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END,al.deadline NULLS LAST,al.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
+    res.json({ data: rows.rows, page, limit, total: total.rows[0].count, totalPages: Math.ceil(total.rows[0].count / limit) });
+  } catch (error) { next(error); }
+});
+
+for (const action of ['acknowledge', 'resolve']) {
+  router.patch(`/:id/${action}`, requireLogisticsPermission(action === 'resolve' ? 'alerts.resolve' : 'alerts.acknowledge'), validateBody(alertActionSchema), async (req, res) => {
+    const client = await logisticsPool.connect();
+    try {
+      await client.query('BEGIN');
+      const params = [req.params.id]; const conditions = ['al.id=$1'];
+      appendAlertScope(req, conditions, params);
+      const before = await client.query(`SELECT al.* FROM logistics_alerts al LEFT JOIN logistics_assets a ON a.id=al.asset_id WHERE ${conditions.join(' AND ')} FOR UPDATE OF al`, params);
+      if (!before.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Alerte introuvable.' }); }
+      const targetStatus = action === 'resolve' ? 'resolved' : 'acknowledged';
+      const timeColumn = action === 'resolve' ? 'resolved_at' : 'acknowledged_at';
+      const userColumn = action === 'resolve' ? 'resolved_by' : 'acknowledged_by';
+      const updated = await client.query(`UPDATE logistics_alerts SET status=$1,${timeColumn}=NOW(),${userColumn}=$2,updated_at=NOW(),version=version+1 WHERE id=$3 AND version=$4 RETURNING *`, [targetStatus, req.identity.id, req.params.id, req.validated.version]);
+      if (!updated.rows[0]) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Alerte déjà modifiée.', code: 'VERSION_CONFLICT' }); }
+      await writeAudit(client, req, `alert.${action}d`, 'alert', req.params.id, before.rows[0], updated.rows[0]);
+      await client.query('COMMIT'); res.json(updated.rows[0]);
+    } catch (error) { await client.query('ROLLBACK'); return sendDatabaseError(res, error); } finally { client.release(); }
+  });
+}
+
 export default router;

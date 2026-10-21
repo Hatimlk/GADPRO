@@ -23,6 +23,8 @@ import notifications from './notifications.js';
 import analytics from './analytics.js';
 import automation from './automation.js';
 import imports from './imports.js';
+import settings from './settings.js';
+import audit from './audit.js';
 
 const router = Router();
 
@@ -149,5 +151,7 @@ router.use('/notifications', notifications);
 router.use('/analytics', analytics);
 router.use('/automation', automation);
 router.use('/imports', imports);
+router.use('/settings', settings);
+router.use('/audit', audit);
 
 export default router;
