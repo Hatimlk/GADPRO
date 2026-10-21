@@ -6,8 +6,8 @@ import { calculateAvailability, calculateTrackedOperatingCost, normalizeAnalytic
 
 const router = Router();
 
-function scopedFilter(req, query) {
-  const params = [query.from, query.to];
+export function scopedFilter(req, query, { includePeriod = true } = {}) {
+  const params = includePeriod ? [query.from, query.to] : [];
   const conditions = ['a.deleted_at IS NULL'];
   appendAssetScope(req, conditions, params);
   for (const [key,column] of [['siteId','a.site_id'],['categoryId','a.category_id'],['assetId','a.id']]) {
@@ -21,9 +21,10 @@ router.get('/overview', requireLogisticsPermission('reports.read'), validateQuer
     const period=normalizeAnalyticsPeriod(req.validatedQuery.from,req.validatedQuery.to);
     if(!period)return res.status(400).json({error:'Période invalide ou supérieure à trois ans.'});
     const {params,where}=scopedFilter(req,req.validatedQuery);
+    const assetScope=scopedFilter(req,req.validatedQuery,{includePeriod:false});
     const endExclusive=`($2::date + INTERVAL '1 day')`;
     const [assets,maintenance,fuel,tires,monthly,providers,topAssets]=await Promise.all([
-      logisticsQuery(`SELECT COUNT(*)::int AS count FROM logistics_assets a WHERE ${where} AND a.status NOT IN ('sold','decommissioned')`,params),
+      logisticsQuery(`SELECT COUNT(*)::int AS count FROM logistics_assets a WHERE ${assetScope.where} AND a.status NOT IN ('sold','decommissioned')`,assetScope.params),
       logisticsQuery(`SELECT COALESCE(SUM(i.actual_cost),0) AS cost,COALESCE(SUM(i.downtime_hours),0) AS downtime_hours,
         COUNT(*) FILTER(WHERE i.maintenance_kind='preventive')::int AS preventive,
         COUNT(*) FILTER(WHERE i.maintenance_kind='corrective')::int AS corrective

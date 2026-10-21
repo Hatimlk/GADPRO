@@ -1,8 +1,14 @@
 import { describe,expect,it } from 'vitest';
 import { analyticsQuerySchema,automationRunSchema } from '../src/domains/logistique/schemas/validation.js';
 import { calculateAvailability,calculateCostPerUnit,calculateTrackedOperatingCost,normalizeAnalyticsPeriod } from '../src/domains/logistique/services/analytics.js';
+import { scopedFilter } from '../src/domains/logistique/routes/analytics.js';
 
 describe('indicateurs analytiques Logistique',()=>{
+  it('ne transmet pas les dates à la requête de comptage des actifs',()=>{
+    const req={moduleAccess:{permissions:['*']}};
+    const query={from:'2026-01-01',to:'2026-10-21'};
+    expect(scopedFilter(req,query,{includePeriod:false})).toEqual({params:[],where:'a.deleted_at IS NULL'});
+  });
   it('calcule une disponibilité calendaire bornée',()=>{
     expect(calculateAvailability(100,8)).toBe(92);
     expect(calculateAvailability(100,120)).toBe(0);
