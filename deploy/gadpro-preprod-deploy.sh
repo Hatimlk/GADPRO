@@ -21,13 +21,22 @@ switched=false
 
 health() {
   for attempt in {1..20}; do
-    if curl -fsS --max-time 5 http://127.0.0.1:4100/api/health |
-      /usr/bin/node --input-type=module -e 'let s="";for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(x.status!=="ok")process.exit(1);'; then
-      return 0
+    response=''
+    if response=$(curl -fsS --max-time 5 http://127.0.0.1:4100/api/health 2>/dev/null); then
+      if HEALTH_RESPONSE="$response" /usr/bin/node --input-type=module -e 'const x=JSON.parse(process.env.HEALTH_RESPONSE);if(x.status!=="ok")process.exit(1);' 2>/dev/null; then
+        return 0
+      fi
     fi
+    printf 'Health check %d/20 indisponible.\n' "$attempt" >&2
     sleep 2
   done
   return 1
+}
+
+service_diagnostics() {
+  echo 'Diagnostic du service gadpro-preprod :' >&2
+  /usr/bin/systemctl --no-pager --full status gadpro-preprod.service >&2 || true
+  /usr/bin/journalctl --no-pager -u gadpro-preprod.service -n 40 >&2 || true
 }
 
 cleanup() {
@@ -68,16 +77,26 @@ PY
 tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$release"
 [[ -f "$release/apps/web/dist/index.html" && -f "$release/apps/api/src/server.js" ]]
 cd "$release"
-# Frontend was built on GitHub with Node 24. API dependencies need no build.
-/usr/bin/npm ci --omit=dev --ignore-scripts
+# Frontend was built on GitHub with Node 24. Install only API runtime dependencies;
+# this avoids installing frontend-only packages with a newer Node engine on the VPS.
+/usr/bin/npm ci --omit=dev --ignore-scripts --workspace @gadimat/api
 ln -s "$base/shared/.env" "$release/.env"
 printf '%s\n' "$sha" > "$release/RELEASE_SHA"
 find "$release/apps/web/dist" -type d -exec chmod 755 {} +
 find "$release/apps/web/dist" -type f -exec chmod 644 {} +
 
+# Refuse la bascule si la configuration dédiée ou le schéma Logistique ne sont pas prêts.
+/usr/bin/node --env-file="$release/.env" "$release/deploy/preflight-preprod.mjs"
+
 ln -s "$release" "$base/.app-next"
 mv -Tf "$base/.app-next" "$base/app"
 switched=true
-sudo -n /usr/bin/systemctl restart gadpro-preprod.service
-health
+if ! sudo -n /usr/bin/systemctl restart gadpro-preprod.service; then
+  service_diagnostics
+  exit 1
+fi
+if ! health; then
+  service_diagnostics
+  exit 1
+fi
 echo "Preproduction deployed: $sha"
