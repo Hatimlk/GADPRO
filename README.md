@@ -17,7 +17,6 @@ Frontend : `http://127.0.0.1:3000`. API : `http://127.0.0.1:4000/api/health`.
 Le lancement local démarre aussi la base dédiée Logistique sur le port `5544`. Après création ou mise à niveau d'un volume existant, appliquer ses migrations avec `npm run migrate:logistics`.
 Cette base est créée et administrée par PROGAD : le module Logistique ne suppose aucune base existante dans Open-Prod ou un autre ERP.
 
-Connexion synthétique locale : `admin.local@gadimat.test` / `GadimatLocal!2026`. Le seed refuse de s’exécuter avec `NODE_ENV=production`.
 
 ## Vérifications
 
