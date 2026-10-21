@@ -173,6 +173,7 @@ export const fuelTransactionSchema = z.object({
 });
 export const fuelListSchema=z.object({page:z.coerce.number().int().min(1).optional().default(1),limit:z.coerce.number().int().min(1).max(100).optional().default(20),assetId:z.string().uuid().optional(),reviewStatus:z.enum(['pending','clear','flagged','reviewed']).optional()});
 export const fuelAnomalyActionSchema=z.object({status:z.enum(['resolved','false_positive']),resolution:z.string().trim().min(3).max(2000),version:z.coerce.number().int().positive()});
+export const fuelAnomalySettingSchema=z.object({warningThreshold:z.coerce.number().positive(),criticalThreshold:z.coerce.number().positive(),minimumDelta:z.coerce.number().min(0),active:z.boolean(),version:z.coerce.number().int().positive()}).refine(value=>value.criticalThreshold>value.warningThreshold,{message:'Le seuil critique doit dépasser le seuil d’alerte.',path:['criticalThreshold']});
 export const tireCreateSchema=z.object({internalId:z.string().trim().min(1).max(80),brand:z.string().trim().min(1).max(120),model:nullableText(120),size:z.string().trim().min(1).max(80),dotSerial:nullableText(120),providerId:nullableUuid,purchasedAt:nullableDate,purchaseCost:z.preprocess(emptyToNull,nonNegative.nullable()),notes:nullableText(5000)});
 export const tireUpdateSchema=tireCreateSchema.partial().extend({version:z.coerce.number().int().positive()});
 export const tireListSchema=z.object({page:z.coerce.number().int().min(1).optional().default(1),limit:z.coerce.number().int().min(1).max(100).optional().default(20),search:z.string().trim().max(160).optional(),status:z.enum(['stock','installed','repair','retired','scrapped']).optional()});
@@ -196,6 +197,12 @@ export const entitySubmitSchema=z.object({version:z.coerce.number().int().positi
 export const documentMetadataSchema=z.object({entityType:z.enum(['asset','intervention','quotation','invoice','provider','driver']),entityId:z.string().uuid(),category:z.enum(['registration','insurance','technical_inspection','ownership','contract','warranty','inspection_report','quotation','invoice','receipt','other']),expiresAt:nullableDate,notes:nullableText(2000)});
 export const documentListSchema=z.object({entityType:z.enum(['asset','intervention','quotation','invoice','provider','driver']),entityId:z.string().uuid()});
 export const notificationListSchema=z.object({limit:z.coerce.number().int().min(1).max(100).optional().default(30),status:z.enum(['unread','read','archived']).optional()});
+export const analyticsQuerySchema=z.object({
+  from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  siteId:z.string().uuid().optional(),categoryId:z.string().uuid().optional(),assetId:z.string().uuid().optional(),
+}).refine(value=>value.to>=value.from,{message:'La date de fin doit suivre la date de début.',path:['to']});
+export const reportFilterSchema=z.object({from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),siteId:z.string().uuid().optional(),categoryId:z.string().uuid().optional(),assetId:z.string().uuid().optional(),providerId:z.string().uuid().optional(),driverId:z.string().uuid().optional(),status:z.string().trim().max(40).optional()}).refine(value=>!value.from||!value.to||value.to>=value.from,{message:'La date de fin doit suivre la date de début.',path:['to']});
+export const automationRunSchema=z.object({runKey:z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9_.:-]+$/).optional()}).default({});
 
 export function validateBody(schema) {
   return (req, res, next) => {

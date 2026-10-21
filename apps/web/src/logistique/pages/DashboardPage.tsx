@@ -9,6 +9,7 @@ type Bootstrap = {
   foundation: { sites: number; assetCategories: number; schemaVersion: string | null; migratedAt: string | null };
   kpis: { assetsTotal: number; assetsAvailable: number; assetsUnavailable: number; openInterventions: number; criticalInterventions: number; monthlyMaintenanceCost: number; overdueMaintenance: number; openAlerts: number; monthlyFuelCost: number; openFuelAnomalies: number; installedTires: number; lowStockParts: number; inventoryValue: number; pendingProcurementApprovals:number; monthlyInvoicedCost:number };
 };
+type AnalyticsSnapshot = { summary: { trackedOperatingCost: number; availabilityRate: number | null; downtimeHours: number } };
 
 const roleLabels: Record<string, string> = {
   logistics_admin: 'Administrateur Logistique', fleet_manager: 'Gestionnaire de parc',
@@ -18,11 +19,20 @@ const roleLabels: Record<string, string> = {
 
 export default function DashboardPage() {
   const [data, setData] = useState<Bootstrap | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [error, setError] = useState('');
 
   const load = async () => {
     setError('');
-    try { setData(await logisticsApi.get<Bootstrap>('/bootstrap')); }
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const from = `${today.slice(0, 4)}-01-01`;
+      const [bootstrap, snapshot] = await Promise.all([
+        logisticsApi.get<Bootstrap>('/bootstrap'),
+        logisticsApi.get<AnalyticsSnapshot>(`/analytics/overview?from=${from}&to=${today}`),
+      ]);
+      setData(bootstrap); setAnalytics(snapshot);
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chargement impossible.'); }
   };
 
@@ -34,6 +44,8 @@ export default function DashboardPage() {
     {!data && !error && <div className="mt-8 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500"><RefreshCw className="h-5 w-5 animate-spin text-blue-600" /> Vérification du socle Logistique…</div>}
     {data && <>
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicateurs opérationnels">
+        {analytics && <FoundationCard icon={CircleDollarSign} label="Coût d’exploitation suivi · année" value={`${analytics.summary.trackedOperatingCost.toLocaleString('fr-FR')} DH`} />}
+        {analytics && <FoundationCard icon={Activity} label="Disponibilité calendaire · année" value={analytics.summary.availabilityRate === null ? '—' : `${analytics.summary.availabilityRate.toLocaleString('fr-FR')} %`} />}
         <FoundationCard icon={Truck} label="Actifs du parc" value={String(data.kpis.assetsTotal)} />
         <FoundationCard icon={Activity} label="Actifs disponibles" value={String(data.kpis.assetsAvailable)} />
         <FoundationCard icon={Wrench} label="Actifs indisponibles" value={String(data.kpis.assetsUnavailable)} />

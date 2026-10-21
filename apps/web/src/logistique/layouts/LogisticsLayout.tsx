@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, BarChart3, Bell, Boxes, ChevronDown, ClipboardCheck, ClipboardList, FileCheck2,
   FileText, Fuel, Gauge, History, LayoutDashboard, LogOut, Menu, PackageOpen, ReceiptText, Settings,
-  ShieldCheck, Truck, UserRound, UsersRound, Warehouse, Wrench, X,
+  ShieldCheck, Truck, Upload, UserRound, UsersRound, Warehouse, Wrench, X,
 } from 'lucide-react';
 import { useApp } from '../../lib/AppContext';
 import { logisticsApi } from '../services/api';
@@ -42,6 +42,7 @@ const groups: NavGroup[] = [
     { to: '/logistique/factures', label: 'Factures & coûts', icon: ReceiptText, permission: 'invoices.read' },
   ] },
   { label: 'Administration', items: [
+    { to: '/logistique/imports', label: 'Imports guidés', icon: Upload, permission: 'imports.create' },
     { to: '/logistique/parametres', label: 'Paramètres', icon: Settings, permission: 'settings.read' },
     { to: '/logistique/referentiels', label: 'Référentiels', icon: PackageOpen, permission: 'settings.read' },
     { to: '/logistique/audit', label: 'Historique & audit', icon: History, permission: 'audit.read' },

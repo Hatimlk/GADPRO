@@ -24,7 +24,7 @@ const LOGISTICS_PERMISSIONS = {
     'interventions.create', 'interventions.update', 'interventions.validate', 'interventions.plan', 'interventions.cancel', 'interventions.close', 'plans.read', 'plans.create',
     'plans.update', 'providers.read', 'providers.create', 'providers.update', 'quotations.read', 'quotations.create',
     'quotations.submit', 'purchase_orders.read', 'purchase_orders.create', 'fuel.read', 'fuel.create', 'fuel.review', 'tires.read', 'tires.create', 'tires.update', 'tires.move', 'stock.read',
-    'costs.read', 'alerts.read', 'alerts.acknowledge', 'reports.read', 'reports.export', 'imports.create', 'settings.read',
+    'costs.read', 'alerts.read', 'alerts.acknowledge', 'reports.read', 'reports.export', 'imports.create', 'imports.confirm', 'settings.read',
   ],
   maintenance_manager: [
     'dashboard.read', 'assets.read', 'meters.create', 'documents.read', 'documents.create', 'interventions.read', 'interventions.create',

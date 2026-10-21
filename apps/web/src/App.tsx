@@ -48,6 +48,7 @@ const LogisticsStock = lazy(() => import('./logistique/pages/StockPage'));
 const LogisticsQuotations = lazy(() => import('./logistique/pages/QuotationsPage'));
 const LogisticsPurchaseOrders = lazy(() => import('./logistique/pages/PurchaseOrdersPage'));
 const LogisticsInvoices = lazy(() => import('./logistique/pages/InvoicesPage'));
+const LogisticsImports = lazy(() => import('./logistique/pages/ImportsPage'));
 
 function Protected({ module, children }: { module?: string; children: ReactNode }) {
   const { currentUser, initialized } = useApp();
@@ -113,6 +114,7 @@ export default function App() {
       <Route path="devis" element={<LogisticsQuotations />} />
       <Route path="commandes" element={<LogisticsPurchaseOrders />} />
       <Route path="factures" element={<LogisticsInvoices />} />
+      <Route path="imports" element={<LogisticsImports />} />
       <Route path="parametres" element={<LogisticsPlaceholder title="Paramètres" phase="Phase 1" />} />
       <Route path="referentiels" element={<LogisticsReferences />} />
       <Route path="audit" element={<LogisticsPlaceholder title="Historique & audit" phase="Phase 1" />} />

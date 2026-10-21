@@ -37,3 +37,6 @@ Voir [l’architecture](docs/ARCHITECTURE.md), la [migration](docs/MIGRATION.md)
 Pour le domaine Logistique & GMAO, voir l’[architecture cible](docs/LOGISTIQUE_GMAO_ARCHITECTURE.md), la [phase 1A — parc](docs/LOGISTIQUE_GMAO_PHASE1A.md), la [phase 1B — maintenance et prestataires](docs/LOGISTIQUE_GMAO_PHASE1B.md), la [phase 1C — préventif et pilotage](docs/LOGISTIQUE_GMAO_PHASE1C.md), la [phase 2A — carburant et pneumatiques](docs/LOGISTIQUE_GMAO_PHASE2A.md) et la [phase 2B — pièces et stock](docs/LOGISTIQUE_GMAO_PHASE2B.md).
 Documentation complémentaire : [phase 2C — achats et facturation](docs/LOGISTIQUE_GMAO_PHASE2C.md).
 Voir également la [phase 2D — documents et notifications](docs/LOGISTIQUE_GMAO_PHASE2D.md).
+La [phase 3A — automatisation et analytique](docs/LOGISTIQUE_GMAO_PHASE3A.md) documente les jobs idempotents, les coûts suivis, la disponibilité et la performance prestataire.
+La [phase 3B — imports guidés](docs/LOGISTIQUE_GMAO_PHASE3B.md) couvre les aperçus CSV/XLSX, le mapping, les doublons et la confirmation auditée.
+La [phase 3C — rapports et seuils carburant](docs/LOGISTIQUE_GMAO_PHASE3C.md) décrit les exports Excel/PDF et la configuration des anomalies.

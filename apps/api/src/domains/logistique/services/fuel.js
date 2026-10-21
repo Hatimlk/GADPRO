@@ -8,7 +8,11 @@ export function calculateConsumption({ quantity, meterReading, meterType, previo
   const delta=Number(meterReading)-Number(previousReading);if(!Number.isFinite(delta)||delta<=0)return null;
   return meterType==='odometer' ? Number(quantity)/delta*100 : Number(quantity)/delta;
 }
-export function detectFuelAnomalies({ consumptionRate, meterType }) {
-  if(consumptionRate===null)return[];const threshold=meterType==='odometer'?50:20;
-  return consumptionRate>threshold?[{ruleCode:'high_consumption',severity:consumptionRate>threshold*1.5?'critical':'warning',observedValue:consumptionRate,expectedValue:threshold,description:meterType==='odometer'?'Consommation supérieure au seuil indicatif en L/100 km.':'Consommation supérieure au seuil indicatif en L/h.'}]:[];
+export function detectFuelAnomalies({ consumptionRate, meterType, meterDelta = null, settings = null }) {
+  if(consumptionRate===null)return[];
+  const warning=Number(settings?.warning_threshold??(meterType==='odometer'?50:20));
+  const critical=Number(settings?.critical_threshold??warning*1.5);
+  const minimumDelta=Number(settings?.minimum_delta??0);
+  if(settings?.active===false||(meterDelta!==null&&Number(meterDelta)<minimumDelta)||Number(consumptionRate)<=warning)return[];
+  return[{ruleCode:'high_consumption',severity:Number(consumptionRate)>critical?'critical':'warning',observedValue:consumptionRate,expectedValue:warning,description:meterType==='odometer'?'Consommation supérieure au seuil configuré en L/100 km.':'Consommation supérieure au seuil configuré en L/h.'}];
 }

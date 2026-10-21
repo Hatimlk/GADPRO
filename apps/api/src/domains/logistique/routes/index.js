@@ -20,6 +20,9 @@ import purchaseOrders from './purchaseOrders.js';
 import invoices from './invoices.js';
 import documents from './documents.js';
 import notifications from './notifications.js';
+import analytics from './analytics.js';
+import automation from './automation.js';
+import imports from './imports.js';
 
 const router = Router();
 
@@ -143,5 +146,8 @@ router.use('/purchase-orders', purchaseOrders);
 router.use('/invoices', invoices);
 router.use('/documents', documents);
 router.use('/notifications', notifications);
+router.use('/analytics', analytics);
+router.use('/automation', automation);
+router.use('/imports', imports);
 
 export default router;
