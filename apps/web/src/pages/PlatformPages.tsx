@@ -121,7 +121,7 @@ function ApplicationTile({ item }: { item: (typeof modules)[keyof typeof modules
 }
 
 export function AdministrationPage() {
-  const { currentUser } = useApp();
+  const { currentUser, refreshCurrentUser } = useApp();
   const [users, setUsers] = useState<CentralUser[]>([]);
   const [legacy, setLegacy] = useState<LegacyOptions>({ cheques: [], impayes: [] });
   const [draft, setDraft] = useState<UserDraft | null>(null);
@@ -174,6 +174,7 @@ export function AdministrationPage() {
           if (access.enabled) await api.put(`/administration/users/${draft.id}/access/${module}`, { role: access.role, ...(module === 'logistique' ? {} : { legacyUserId: access.legacyUserId }) });
           else if (original?.accesses.some((item) => item.module === module)) await api.delete(`/administration/users/${draft.id}/access/${module}`);
         }
+        if (draft.id === currentUser?.centralId) await refreshCurrentUser();
       }
       setDraft(null); setSuccess(draft.id ? 'Compte mis à jour.' : 'Compte créé.'); await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Enregistrement impossible.'); }

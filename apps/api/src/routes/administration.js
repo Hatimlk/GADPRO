@@ -80,9 +80,8 @@ export function validateAccess(access) {
   };
 }
 
-async function saveAccess(client, userId, access) {
+export async function saveAccess(client, userId, access) {
   const source = identitySource(access.module);
-  if (!source) return;
   await client.query(
     `INSERT INTO module_access(user_id,module_code,role,permissions,data_scope,active)
      VALUES($1,$2,$3,$4,$5,true)
@@ -90,6 +89,7 @@ async function saveAccess(client, userId, access) {
        data_scope=EXCLUDED.data_scope,active=true`,
     [userId, access.module, access.role, JSON.stringify(access.permissions), JSON.stringify(access.dataScope)],
   );
+  if (!source) return;
   await client.query(
     `INSERT INTO legacy_identities(central_user_id,source,legacy_user_id)
      VALUES($1,$2,$3)

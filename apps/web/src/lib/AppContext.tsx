@@ -43,6 +43,7 @@ interface AppContextType {
   initialized: boolean;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
+  refreshCurrentUser: () => Promise<void>;
   addBankAccount: (data: { bankName: string; rib: string }) => Promise<void>;
   deleteBankAccount: (id: string) => Promise<void>;
   updateBankAccount: (id: string, data: { bankName: string; rib: string }) => Promise<void>;
@@ -184,6 +185,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPartnerList([]);
     setUsers([]);
     setInstances([]);
+  }, []);
+
+  const refreshCurrentUser = useCallback(async () => {
+    const central = await api.get<any>('/auth/me');
+    const access = central.accesses?.find((item: any) => item.module === 'cheques');
+    setCurrentUser({ ...central, centralId: central.id, id: Number(access?.legacyUserId || 0), role: (access?.role || 'Utilisateur') as UserRole, status: central.active === false ? 'Inactif' : 'Actif' });
   }, []);
 
   // Bank accounts
@@ -492,7 +499,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       bankAccounts, checkbooks, checks, partnerList, instances, users,
       currentUser, isAuthenticated, initialized,
-      login, logout,
+      login, logout, refreshCurrentUser,
       addBankAccount, deleteBankAccount, updateBankAccount,
       addCheckbook, deleteCheckbook,
       addCheck, updateCheck, updateCheckStatus, deleteCheck,
