@@ -204,7 +204,7 @@ router.get('/', validateQuery(dossierListQuerySchema), async (req, res) => {
        FROM dossiers d
        LEFT JOIN users u ON d.commercial_id = u.id
        ${whereClause}
-       ORDER BY d.${sortField} ${sortOrder}
+       ORDER BY d.${sortField} ${sortOrder} NULLS LAST
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...params, limit, offset]
     );

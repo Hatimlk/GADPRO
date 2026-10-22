@@ -70,7 +70,7 @@ export default function DossiersPage() {
         page: String(page),
         limit: '15',
         search,
-        sort: 'date_facture',
+        sort: 'date_echeance',
         order: sortOrder,
         ...filters,
       };
@@ -207,6 +207,11 @@ export default function DossiersPage() {
     setPage(1);
   };
 
+  const toggleEcheanceSort = () => {
+    setSortOrder((current) => current === 'DESC' ? 'ASC' : 'DESC');
+    setPage(1);
+  };
+
   const hasFilters = Object.keys(filters).length > 0 || search.length > 0;
   const activeFilterCount = Object.keys(filters).length + (search ? 1 : 0);
   return (
@@ -244,11 +249,11 @@ export default function DossiersPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => setSortOrder(sortOrder === 'DESC' ? 'ASC' : 'DESC')}
-            title="Trier par date"
+            onClick={toggleEcheanceSort}
+            title="Trier par date d’échéance"
           >
             <ArrowUpDown className="w-4 h-4" />
-            <span className="hidden sm:inline">Date {sortOrder === 'DESC' ? '↓' : '↑'}</span>
+            <span className="hidden sm:inline">Échéance {sortOrder === 'DESC' ? '↓' : '↑'}</span>
           </Button>
           {hasFilters && (
             <Button variant="danger" onClick={clearFilters}>
@@ -401,7 +406,16 @@ export default function DossiersPage() {
             <Thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
               <tr>
                 <Th>Date de facture</Th>
-                <Th>Échéance</Th>
+                <Th aria-sort={sortOrder === 'ASC' ? 'ascending' : 'descending'}>
+                  <button
+                    type="button"
+                    onClick={toggleEcheanceSort}
+                    className="inline-flex items-center gap-1 hover:text-brand-700"
+                    title="Inverser le tri par date d’échéance"
+                  >
+                    Échéance <span aria-hidden="true">{sortOrder === 'DESC' ? '↓' : '↑'}</span>
+                  </button>
+                </Th>
                 <Th>Banque</Th>
                 <Th align="right">Montant</Th>
                 <Th>Val</Th>
