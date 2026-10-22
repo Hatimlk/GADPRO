@@ -401,6 +401,7 @@ export default function DossiersPage() {
             <Thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
               <tr>
                 <Th>Date de facture</Th>
+                <Th>Échéance</Th>
                 <Th>Banque</Th>
                 <Th align="right">Montant</Th>
                 <Th>Val</Th>
@@ -433,6 +434,7 @@ export default function DossiersPage() {
                   }}
                 >
                   <Td>{d.date_facture ? formatDate(d.date_facture) : '-'}</Td>
+                  <Td>{d.date_echeance ? formatDate(d.date_echeance) : '-'}</Td>
                   <Td className="font-medium">{d.banque}</Td>
                   <Td align="right" className="font-mono">{formatMontant(d.montant)}</Td>
                   <Td>
