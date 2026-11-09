@@ -25,6 +25,7 @@ import automation from './automation.js';
 import imports from './imports.js';
 import settings from './settings.js';
 import audit from './audit.js';
+import oilChanges from './oilChanges.js';
 
 const router = Router();
 
@@ -153,5 +154,6 @@ router.use('/automation', automation);
 router.use('/imports', imports);
 router.use('/settings', settings);
 router.use('/audit', audit);
+router.use('/oil-changes', oilChanges);
 
 export default router;

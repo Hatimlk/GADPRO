@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, BarChart3, Bell, Boxes, ChevronDown, ClipboardCheck, ClipboardList, FileCheck2,
-  FileText, Fuel, Gauge, History, LayoutDashboard, LogOut, Menu, PackageOpen, ReceiptText, Settings,
+  FileText, Fuel, Gauge, History, LayoutDashboard, LogOut, Menu, PackageOpen, ReceiptText, Settings, Droplets,
   ShieldCheck, Truck, Upload, UserRound, UsersRound, Warehouse, Wrench, X,
 } from 'lucide-react';
 import { useApp } from '../../lib/AppContext';
@@ -25,6 +25,7 @@ const groups: NavGroup[] = [
   ] },
   { label: 'Maintenance', items: [
     { to: '/logistique/interventions', label: 'Interventions', icon: Wrench, permission: 'interventions.read' },
+    { to: '/logistique/vidanges', label: 'Vidanges', icon: Droplets, permission: 'plans.read' },
     { to: '/logistique/preventif', label: 'Maintenance préventive', icon: ClipboardCheck, permission: 'plans.read' },
     { to: '/logistique/plans', label: 'Plans de maintenance', icon: ClipboardList, permission: 'plans.read' },
     { to: '/logistique/alertes', label: 'Alertes & échéances', icon: AlertTriangle, permission: 'alerts.read' },

@@ -38,6 +38,7 @@ const LogisticsInterventions = lazy(() => import('./logistique/pages/Interventio
 const LogisticsInterventionDetail = lazy(() => import('./logistique/pages/InterventionDetailPage'));
 const LogisticsPlans = lazy(() => import('./logistique/pages/MaintenancePlansPage'));
 const LogisticsPreventive = lazy(() => import('./logistique/pages/PreventivePage'));
+const LogisticsOilChanges = lazy(() => import('./logistique/pages/OilChangesPage'));
 const LogisticsAlerts = lazy(() => import('./logistique/pages/LogisticsAlertsPage'));
 const LogisticsReports = lazy(() => import('./logistique/pages/LogisticsReportsPage'));
 const LogisticsFuel = lazy(() => import('./logistique/pages/FuelPage'));
@@ -105,6 +106,7 @@ export default function App() {
       <Route path="interventions" element={<LogisticsInterventions />} />
       <Route path="interventions/:id" element={<LogisticsInterventionDetail />} />
       <Route path="preventif" element={<LogisticsPreventive />} />
+      <Route path="vidanges" element={<LogisticsOilChanges />} />
       <Route path="plans" element={<LogisticsPlans />} />
       <Route path="alertes" element={<LogisticsAlerts />} />
       <Route path="carburant" element={<LogisticsFuel />} />
