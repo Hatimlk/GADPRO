@@ -14,6 +14,7 @@
     ,"local:seed": "node --env-file=.env database/scripts/seed-local.js"
     ,"migrate:logistics": "npm run migrate:logistics -w @gadimat/api"
     ,"seed:logistics:demo": "node --env-file=.env database/scripts/seed-logistics-demo.js"
+    ,"cleanup:logistics:demo": "node --env-file=.env database/scripts/cleanup-logistics-demo.js"
     ,"verify:local-rbac": "node --env-file=.env scripts/verify-local-rbac.js"
     ,"local:down": "docker compose -f compose.local.yml down"
     ,"local:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-local.ps1"

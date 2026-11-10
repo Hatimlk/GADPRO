@@ -36,6 +36,15 @@ LOGISTICS_DEMO_SEED_TARGET=preprod.gadimat.pro npm run seed:logistics:demo
 
 Le script est idempotent, ne supprime aucune donnée et refuse toute cible autre que `preprod.gadimat.pro` ou toute base dont le nom n'est pas `gadimat_logistique`. Les enregistrements de démonstration portent des identifiants ou références préfixés par `DEMO-` afin de rester reconnaissables.
 
+Pour retirer exclusivement ces données de démonstration tout en conservant le « Suivi des vidanges » importé, exécuter depuis la release active :
+
+```bash
+cd /var/www/gadpro-preprod/app
+LOGISTICS_DEMO_CLEANUP_TARGET=preprod.gadimat.pro npm run cleanup:logistics:demo
+```
+
+Le nettoyage est transactionnel, refuse toute autre cible et vérifie avant validation que le nombre de fiches et le total kilométrique du Suivi des vidanges sont inchangés.
+
 Le répertoire `app` devient un lien vers une release initiale. Les chemins Nginx, service API et service de rappels restent identiques. Le `.env` est déplacé vers `shared/.env` avec le mode 600, et chaque release utilise un lien vers ce fichier. `shared` n'est pas servi par Nginx. Le service de sauvegarde ne change pas.
 
 Créer une clé dédiée (ne pas écraser un fichier déjà existant) :
