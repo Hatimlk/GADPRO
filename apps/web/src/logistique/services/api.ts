@@ -21,7 +21,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({ error: 'Erreur réseau.' }));
-    throw new Error(body.error || `Erreur ${response.status}`);
+    const detail=Array.isArray(body.details)&&body.details[0]?`${body.details[0].field||'champ'} : ${body.details[0].message}`:'';
+    throw new Error(`${body.error||`Erreur ${response.status}`}${detail?` — ${detail}`:''}`);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

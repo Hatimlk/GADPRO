@@ -210,9 +210,11 @@ export const oilChangeListSchema=z.object({search:z.string().trim().max(160).opt
 export const oilChangeMileageSchema=z.object({mileage:nonNegative,recordedAt:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),version:z.coerce.number().int().positive()});
 export const oilChangeCompleteSchema=z.object({mileage:nonNegative,serviceDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),operationLabel:nullableText(120),notes:nullableText(5000),version:z.coerce.number().int().positive()});
 
-const fuelTrackingVehicleSchema=z.object({registrationNumber:z.string().trim().min(3).max(80),vehicleType:nullableText(80),targetConsumption:z.preprocess(emptyToNull,z.coerce.number().positive().nullable()),tankCapacity:z.preprocess(emptyToNull,z.coerce.number().positive().nullable())});
-const fuelTrackingEntrySchema=z.object({sourceRow:z.coerce.number().int().min(4),registrationNumber:z.string().trim().min(3).max(80),occurredOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),month:z.coerce.number().int().min(1).max(12),fillType:z.enum(['initial','addition','final']),odometer:nonNegative,distanceTravelled:nonNegative,quantity:z.coerce.number().positive(),tankCapacity:z.preprocess(emptyToNull,z.coerce.number().positive().nullable()),note:nullableText(500),unitPrice:z.preprocess(emptyToNull,z.coerce.number().positive().nullable())});
-export const fuelTrackingImportSchema=z.object({sourceName:z.string().trim().min(1).max(255),vehicles:z.array(fuelTrackingVehicleSchema).max(100),entries:z.array(fuelTrackingEntrySchema).min(1).max(1500)});
+const optionalPositive=z.preprocess(value=>value===''||value===null||value===undefined||Number(value)<=0?null:value,z.coerce.number().positive().nullable());
+const fuelTrackingVehicleSchema=z.object({registrationNumber:z.string().trim().min(3).max(80),vehicleType:nullableText(80),targetConsumption:optionalPositive,tankCapacity:optionalPositive});
+const fuelTrackingEntrySchema=z.object({sourceRow:z.coerce.number().int().min(4),registrationNumber:z.string().trim().min(3).max(80),occurredOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),month:z.coerce.number().int().min(1).max(12),fillType:z.enum(['initial','addition','final']),odometer:nonNegative,distanceTravelled:nonNegative,quantity:z.coerce.number().positive(),tankCapacity:optionalPositive,note:nullableText(500),unitPrice:optionalPositive});
+const fuelTrackingVehicles=z.preprocess(value=>Array.isArray(value)?value.filter(item=>String(item?.registrationNumber??'').trim().length>=3):value,z.array(fuelTrackingVehicleSchema).max(100));
+export const fuelTrackingImportSchema=z.object({sourceName:z.string().trim().min(1).max(255),vehicles:fuelTrackingVehicles,entries:z.array(fuelTrackingEntrySchema).min(1).max(1500)});
 export const fuelTrackingListSchema=z.object({month:z.coerce.number().int().min(1).max(12).optional(),limit:z.coerce.number().int().min(1).max(500).optional().default(200)});
 
 export function validateBody(schema) {

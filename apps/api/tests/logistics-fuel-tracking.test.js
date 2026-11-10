@@ -13,7 +13,9 @@ describe('suivi carburant mensuel',()=>{
     expect(fuelTrackingControl(550,660)).toBe('ok');
   });
   it('valide une ligne importée',()=>{
-    const parsed=fuelTrackingImportSchema.safeParse({sourceName:'suivi.xlsx',vehicles:[],entries:[{sourceRow:4,registrationNumber:'69256 A 34',occurredOn:'2026-06-03',month:6,fillType:'initial',odometer:243612,distanceTravelled:0,quantity:922,tankCapacity:1100,note:null,unitPrice:null}]});
+    const parsed=fuelTrackingImportSchema.safeParse({sourceName:'suivi.xlsx',vehicles:[{registrationNumber:' ',vehicleType:null,targetConsumption:0,tankCapacity:0}],entries:[{sourceRow:4,registrationNumber:'69256 A 34',occurredOn:'2026-06-03',month:6,fillType:'initial',odometer:243612,distanceTravelled:0,quantity:922,tankCapacity:1100,note:null,unitPrice:0}]});
     expect(parsed.success).toBe(true);
+    expect(parsed.success&&parsed.data.vehicles).toHaveLength(0);
+    expect(parsed.success&&parsed.data.entries[0].unitPrice).toBeNull();
   });
 });
