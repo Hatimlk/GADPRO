@@ -1,7 +1,10 @@
+import { execFile } from 'node:child_process';
 import { readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { promisify } from 'node:util';
 import pg from 'pg';
 
+const execFileAsync = promisify(execFile);
 const required = ['CENTRAL_DATABASE_URL', 'CHEQUES_DATABASE_URL', 'IMPAYES_DATABASE_URL', 'LOGISTICS_DATABASE_URL', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
 const missing = required.filter(name => !process.env[name]);
 if (missing.length) {
@@ -24,9 +27,17 @@ async function checkDatabase(label, connectionString, checkMigration = false) {
     await pool.query('SELECT 1');
     if (checkMigration) {
       const table = await pool.query("SELECT to_regclass('public.schema_migrations') AS name");
-      if (!table.rows[0]?.name) throw new Error('schéma absent ; exécuter npm run migrate:logistics');
-      const migration = await pool.query('SELECT name FROM schema_migrations WHERE version=$1', [latestVersion]);
-      if (!migration.rowCount) throw new Error(`migration ${latest} absente ; exécuter npm run migrate:logistics`);
+      if (!table.rows[0]?.name) throw new Error('schéma Logistique absent');
+      let migration = await pool.query('SELECT name FROM schema_migrations WHERE version=$1', [latestVersion]);
+      if (!migration.rowCount) {
+        console.log(`Migration ${latest} absente : application avant bascule.`);
+        const migrationScript = resolve(process.cwd(), 'apps/api/src/scripts/migrate-logistics.js');
+        const result = await execFileAsync(process.execPath, [migrationScript], { cwd: process.cwd(), env: process.env });
+        if (result.stdout) process.stdout.write(result.stdout);
+        if (result.stderr) process.stderr.write(result.stderr);
+        migration = await pool.query('SELECT name FROM schema_migrations WHERE version=$1', [latestVersion]);
+        if (!migration.rowCount) throw new Error(`migration ${latest} toujours absente après exécution`);
+      }
     }
     console.log(`Précontrôle ${label} : OK`);
   } catch (error) {

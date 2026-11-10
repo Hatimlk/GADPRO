@@ -26,6 +26,7 @@ import imports from './imports.js';
 import settings from './settings.js';
 import audit from './audit.js';
 import oilChanges from './oilChanges.js';
+import fuelTracking from './fuelTracking.js';
 
 const router = Router();
 
@@ -155,5 +156,6 @@ router.use('/imports', imports);
 router.use('/settings', settings);
 router.use('/audit', audit);
 router.use('/oil-changes', oilChanges);
+router.use('/fuel-tracking', fuelTracking);
 
 export default router;

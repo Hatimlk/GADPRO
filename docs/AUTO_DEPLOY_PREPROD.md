@@ -1,8 +1,8 @@
 # Déploiement automatique de préproduction
 
-Le workflow déploie uniquement `main` vers `preprod.gadimat.pro`. Il compile avec Node 24 sur GitHub, conserve l'environnement sur OVH et ne lance aucune migration/seed. Sur le VPS, seules les dépendances d'exécution de l'API sont installées ; les dépendances frontend sont déjà intégrées au build. Les archives sont envoyées par une commande SSH forcée; les clés d'hôte sont épinglées. Un échec du contrôle API après bascule rétablit le lien et redémarre l'ancienne version.
+Le workflow déploie uniquement `main` vers `preprod.gadimat.pro`. Il compile avec Node 24 sur GitHub, conserve l'environnement sur OVH et applique les migrations Logistique manquantes avant la bascule. Il ne lance aucun seed. Sur le VPS, seules les dépendances d'exécution de l'API sont installées ; les dépendances frontend sont déjà intégrées au build. Les archives sont envoyées par une commande SSH forcée; les clés d'hôte sont épinglées. Un échec du contrôle API après bascule rétablit le lien et redémarre l'ancienne version.
 
-Avant la bascule, le script vérifie les variables obligatoires, la connexion à la base centrale, la connexion à la base dédiée Logistique et la présence de la dernière migration Logistique. Une erreur est donc signalée avant le changement de release. Les migrations restent une opération explicite d'administration.
+Avant la bascule, le script vérifie les variables obligatoires et les connexions aux bases. Si la dernière migration Logistique manque, elle est appliquée transactionnellement depuis la nouvelle release, puis sa présence est contrôlée avant le changement de release.
 
 ## Installer une seule fois sur OVH
 

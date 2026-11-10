@@ -42,6 +42,7 @@ const LogisticsOilChanges = lazy(() => import('./logistique/pages/OilChangesPage
 const LogisticsAlerts = lazy(() => import('./logistique/pages/LogisticsAlertsPage'));
 const LogisticsReports = lazy(() => import('./logistique/pages/LogisticsReportsPage'));
 const LogisticsFuel = lazy(() => import('./logistique/pages/FuelPage'));
+const LogisticsFuelTracking = lazy(() => import('./logistique/pages/FuelTrackingPage'));
 const LogisticsTires = lazy(() => import('./logistique/pages/TiresPage'));
 const LogisticsSpareParts = lazy(() => import('./logistique/pages/SparePartsPage'));
 const LogisticsStock = lazy(() => import('./logistique/pages/StockPage'));
@@ -110,6 +111,7 @@ export default function App() {
       <Route path="plans" element={<LogisticsPlans />} />
       <Route path="alertes" element={<LogisticsAlerts />} />
       <Route path="carburant" element={<LogisticsFuel />} />
+      <Route path="suivi-carburant" element={<LogisticsFuelTracking />} />
       <Route path="pneumatiques" element={<LogisticsTires />} />
       <Route path="pieces" element={<LogisticsSpareParts />} />
       <Route path="stock" element={<LogisticsStock />} />
