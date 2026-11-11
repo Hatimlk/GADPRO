@@ -1,6 +1,6 @@
 import { describe,expect,it } from 'vitest';
 import { fuelTrackingControl,fuelTrackingRate,normalizeRegistration } from '../src/domains/logistique/services/fuelTracking.js';
-import { fuelTrackingImportSchema } from '../src/domains/logistique/schemas/validation.js';
+import { fuelTrackingEntryCreateSchema,fuelTrackingEntryDeleteSchema,fuelTrackingEntryUpdateSchema,fuelTrackingImportSchema } from '../src/domains/logistique/schemas/validation.js';
 
 describe('suivi carburant mensuel',()=>{
   it('normalise les variantes de matricule du classeur',()=>{
@@ -17,5 +17,12 @@ describe('suivi carburant mensuel',()=>{
     expect(parsed.success).toBe(true);
     expect(parsed.success&&parsed.data.vehicles).toHaveLength(0);
     expect(parsed.success&&parsed.data.entries[0].unitPrice).toBeNull();
+  });
+  it('valide les opérations CRUD avec contrôle de version',()=>{
+    const entry={vehicleId:'11111111-1111-4111-8111-111111111111',occurredOn:'2026-11-11',month:11,fillType:'addition',odometer:123456,distanceTravelled:420,quantity:130,note:null,unitPrice:null};
+    expect(fuelTrackingEntryCreateSchema.safeParse(entry).success).toBe(true);
+    expect(fuelTrackingEntryUpdateSchema.safeParse({...entry,version:2}).success).toBe(true);
+    expect(fuelTrackingEntryUpdateSchema.safeParse(entry).success).toBe(false);
+    expect(fuelTrackingEntryDeleteSchema.safeParse({version:'2'}).success).toBe(true);
   });
 });

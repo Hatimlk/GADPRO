@@ -216,6 +216,10 @@ const fuelTrackingEntrySchema=z.object({sourceRow:z.coerce.number().int().min(4)
 const fuelTrackingVehicles=z.preprocess(value=>Array.isArray(value)?value.filter(item=>String(item?.registrationNumber??'').trim().length>=3):value,z.array(fuelTrackingVehicleSchema).max(100));
 export const fuelTrackingImportSchema=z.object({sourceName:z.string().trim().min(1).max(255),vehicles:fuelTrackingVehicles,entries:z.array(fuelTrackingEntrySchema).min(1).max(1500)});
 export const fuelTrackingListSchema=z.object({month:z.coerce.number().int().min(1).max(12).optional(),limit:z.coerce.number().int().min(1).max(500).optional().default(200)});
+const fuelTrackingEntryMutationBase=z.object({vehicleId:z.string().uuid(),occurredOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),month:z.coerce.number().int().min(1).max(12),fillType:z.enum(['initial','addition','final']),odometer:nonNegative,distanceTravelled:nonNegative,quantity:z.coerce.number().positive(),note:nullableText(500),unitPrice:optionalPositive});
+export const fuelTrackingEntryCreateSchema=fuelTrackingEntryMutationBase;
+export const fuelTrackingEntryUpdateSchema=fuelTrackingEntryMutationBase.extend({version:z.coerce.number().int().positive()});
+export const fuelTrackingEntryDeleteSchema=z.object({version:z.coerce.number().int().positive()});
 
 export function validateBody(schema) {
   return (req, res, next) => {
