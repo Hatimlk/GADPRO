@@ -234,6 +234,19 @@ const inventoryMovementBase=z.object({itemId:z.string().uuid(),occurredOn:z.stri
 export const inventoryTrackingMovementCreateSchema=inventoryMovementBase;
 export const inventoryTrackingMovementUpdateSchema=inventoryMovementBase.extend({version:z.coerce.number().int().positive()});
 
+const fleetHistoryOptionalNumber=z.preprocess(emptyToNull,z.coerce.number().nonnegative().nullable());
+const fleetHistoryVehicleBase=z.object({registrationNumber:z.string().trim().min(3).max(80),fleetType:z.enum(['tractor','carrier']),modelLabel:nullableText(255),chassisNumber:nullableText(120),registeredOn:nullableDate,statusNote:nullableText(2000)});
+const fleetHistoryImportVehicleSchema=fleetHistoryVehicleBase.extend({sourceSheet:z.string().trim().min(1).max(120)});
+const fleetHistoryImportEntrySchema=z.object({sourceSheet:z.string().trim().min(1).max(120),sourceRow:z.coerce.number().int().positive(),registrationNumber:z.string().trim().min(3).max(80),occurredOn:nullableDate,dateLabel:nullableText(120),driverName:nullableText(255),interventionLabel:z.string().trim().min(1).max(10000),mileage:fleetHistoryOptionalNumber,costAmount:fleetHistoryOptionalNumber,costNote:nullableText(160),observation:nullableText(10000),providerName:nullableText(500)});
+export const fleetHistoryImportSchema=z.object({sourceName:z.string().trim().min(1).max(255),vehicles:z.array(fleetHistoryImportVehicleSchema).min(1).max(100),entries:z.array(fleetHistoryImportEntrySchema).max(5000)});
+export const fleetHistoryListSchema=z.object({search:z.string().trim().max(160).optional(),fleetType:z.enum(['tractor','carrier']).optional(),vehicleId:z.string().uuid().optional(),limit:z.coerce.number().int().min(1).max(500).optional().default(300)});
+export const fleetHistoryVehicleCreateSchema=fleetHistoryVehicleBase;
+export const fleetHistoryVehicleUpdateSchema=fleetHistoryVehicleBase.extend({version:z.coerce.number().int().positive()});
+export const fleetHistoryDeleteSchema=z.object({version:z.coerce.number().int().positive()});
+const fleetHistoryEntryBase=z.object({vehicleId:z.string().uuid(),occurredOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),driverName:nullableText(255),interventionLabel:z.string().trim().min(1).max(10000),mileage:fleetHistoryOptionalNumber,costAmount:fleetHistoryOptionalNumber,costNote:nullableText(160),observation:nullableText(10000),providerName:nullableText(500)});
+export const fleetHistoryEntryCreateSchema=fleetHistoryEntryBase;
+export const fleetHistoryEntryUpdateSchema=fleetHistoryEntryBase.extend({version:z.coerce.number().int().positive()});
+
 export function validateBody(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse(req.body);

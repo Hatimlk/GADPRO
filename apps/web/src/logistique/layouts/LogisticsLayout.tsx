@@ -19,6 +19,7 @@ const groups: NavGroup[] = [
   ] },
   { label: 'Gestion du parc', items: [
     { to: '/logistique/parc', label: 'Véhicules', icon: Truck, permission: 'assets.read' },
+    { to: '/logistique/etat-parc', label: 'État du parc', icon: History, permission: 'assets.read' },
     { to: '/logistique/equipements', label: 'Engins & équipements', icon: Gauge, permission: 'assets.read' },
     { to: '/logistique/conducteurs', label: 'Conducteurs', icon: UserRound, permission: 'drivers.read' },
     { to: '/logistique/affectations', label: 'Affectations', icon: UsersRound, permission: 'assets.read' },

@@ -32,6 +32,7 @@ const LogisticsAssets = lazy(() => import('./logistique/pages/AssetsPage'));
 const LogisticsAssetDetail = lazy(() => import('./logistique/pages/AssetDetailPage'));
 const LogisticsDrivers = lazy(() => import('./logistique/pages/DriversPage'));
 const LogisticsAssignments = lazy(() => import('./logistique/pages/AssignmentsPage'));
+const LogisticsFleetHistory = lazy(() => import('./logistique/pages/FleetHistoryPage'));
 const LogisticsReferences = lazy(() => import('./logistique/pages/ReferencesPage'));
 const LogisticsProviders = lazy(() => import('./logistique/pages/ProvidersPage'));
 const LogisticsInterventions = lazy(() => import('./logistique/pages/InterventionsPage'));
@@ -105,6 +106,7 @@ export default function App() {
       <Route path="equipements/:id" element={<LogisticsAssetDetail />} />
       <Route path="conducteurs" element={<LogisticsDrivers />} />
       <Route path="affectations" element={<LogisticsAssignments />} />
+      <Route path="etat-parc" element={<LogisticsFleetHistory />} />
       <Route path="interventions" element={<LogisticsInterventions />} />
       <Route path="interventions/:id" element={<LogisticsInterventionDetail />} />
       <Route path="preventif" element={<LogisticsPreventive />} />
