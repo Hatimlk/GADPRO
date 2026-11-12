@@ -221,6 +221,19 @@ export const fuelTrackingEntryCreateSchema=fuelTrackingEntryMutationBase;
 export const fuelTrackingEntryUpdateSchema=fuelTrackingEntryMutationBase.extend({version:z.coerce.number().int().positive()});
 export const fuelTrackingEntryDeleteSchema=z.object({version:z.coerce.number().int().positive()});
 
+const inventoryOptionalQuantity=z.preprocess(emptyToNull,z.coerce.number().finite().nullable());
+const inventoryItemBase=z.object({reference:z.string().trim().min(1).max(120),name:z.string().trim().min(1).max(255),openingQuantity:z.coerce.number().finite(),declaredQuantity:inventoryOptionalQuantity,inventoryQuantity:inventoryOptionalQuantity,inventoryNote:nullableText(500),unit:z.enum(['piece','liter','kg','meter','set']).optional().default('piece')});
+const inventoryImportItemSchema=inventoryItemBase.extend({sourceRow:z.coerce.number().int().positive()});
+const inventoryImportMovementSchema=z.object({sourceRow:z.coerce.number().int().positive(),reference:z.string().trim().min(1).max(120),occurredOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),movementType:z.enum(['entry','exit']),quantity:z.coerce.number().positive(),requester:nullableText(255),vehicleRegistration:nullableText(120),operationLabel:nullableText(500),depot:nullableText(160)});
+export const inventoryTrackingImportSchema=z.object({sourceName:z.string().trim().min(1).max(255),items:z.array(inventoryImportItemSchema).min(1).max(500),movements:z.array(inventoryImportMovementSchema).min(1).max(3000)});
+export const inventoryTrackingListSchema=z.object({search:z.string().trim().max(160).optional(),itemId:z.string().uuid().optional(),movementType:z.enum(['entry','exit']).optional(),limit:z.coerce.number().int().min(1).max(500).optional().default(200)});
+export const inventoryTrackingItemCreateSchema=inventoryItemBase;
+export const inventoryTrackingItemUpdateSchema=inventoryItemBase.extend({version:z.coerce.number().int().positive()});
+export const inventoryTrackingDeleteSchema=z.object({version:z.coerce.number().int().positive()});
+const inventoryMovementBase=z.object({itemId:z.string().uuid(),occurredOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),movementType:z.enum(['entry','exit']),quantity:z.coerce.number().positive(),requester:nullableText(255),vehicleRegistration:nullableText(120),operationLabel:nullableText(500),depot:nullableText(160)});
+export const inventoryTrackingMovementCreateSchema=inventoryMovementBase;
+export const inventoryTrackingMovementUpdateSchema=inventoryMovementBase.extend({version:z.coerce.number().int().positive()});
+
 export function validateBody(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse(req.body);

@@ -32,6 +32,7 @@ const groups: NavGroup[] = [
   ] },
   { label: 'Exploitation', items: [
     { to: '/logistique/suivi-carburant', label: 'Suivi Carburant', icon: Droplets, permission: 'fuel.read' },
+    { to: '/logistique/suivi-stock', label: 'Suivi du Stock', icon: Warehouse, permission: 'stock.read' },
     { to: '/logistique/carburant', label: 'Carburant', icon: Fuel, permission: 'fuel.read' },
     { to: '/logistique/pneumatiques', label: 'Pneumatiques', icon: Truck, permission: 'tires.read' },
     { to: '/logistique/pieces', label: 'Pièces de rechange', icon: Boxes, permission: 'stock.read' },

@@ -46,6 +46,7 @@ const LogisticsFuelTracking = lazy(() => import('./logistique/pages/FuelTracking
 const LogisticsTires = lazy(() => import('./logistique/pages/TiresPage'));
 const LogisticsSpareParts = lazy(() => import('./logistique/pages/SparePartsPage'));
 const LogisticsStock = lazy(() => import('./logistique/pages/StockPage'));
+const LogisticsInventoryTracking = lazy(() => import('./logistique/pages/InventoryTrackingPage'));
 const LogisticsQuotations = lazy(() => import('./logistique/pages/QuotationsPage'));
 const LogisticsPurchaseOrders = lazy(() => import('./logistique/pages/PurchaseOrdersPage'));
 const LogisticsInvoices = lazy(() => import('./logistique/pages/InvoicesPage'));
@@ -115,6 +116,7 @@ export default function App() {
       <Route path="pneumatiques" element={<LogisticsTires />} />
       <Route path="pieces" element={<LogisticsSpareParts />} />
       <Route path="stock" element={<LogisticsStock />} />
+      <Route path="suivi-stock" element={<LogisticsInventoryTracking />} />
       <Route path="prestataires" element={<LogisticsProviders />} />
       <Route path="devis" element={<LogisticsQuotations />} />
       <Route path="commandes" element={<LogisticsPurchaseOrders />} />
